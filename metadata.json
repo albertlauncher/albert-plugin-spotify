@@ -1,0 +1,8 @@
+{
+  "authors": ["@manuelschneider"],
+  "description": "Control Spotify clients",
+  "description[de]": "Spotify-Clients steuern",
+  "license": "MIT",
+  "name": "Spotify",
+  "url": "https://github.com/albertlauncher/albert-plugin-spotify"
+}
