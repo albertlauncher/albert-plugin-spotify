@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="spotify">resources/spotify.svg</file>
+    </qresource>
+</RCC>
