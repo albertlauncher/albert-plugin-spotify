@@ -2,12 +2,10 @@
 
 ## Features
 
-- Search media on spotify
-- Set default search media types
-- Change query media type by prefixing the query with one of:
-  - *album*, *artist*, *playlist*, *track*, *show*, *episode*, *audiobook*
+- Provides triggered query handlers for Spotify *album*, *artist*, *playlist*, *track*, *show*,
+  *episode* and *audiobook* searches.
 - Play/queue media on your Spotify clients
-  
+
 ## Limitations
 
 The web API works for premium accounts only. 
@@ -23,7 +21,7 @@ This will start playback of opened URIs.
 1. Add Redirect URI `albert://spotify/`.
 1. Tick checkbox *Web API*.
 1. Add your name and mail under *User Management*.
-1. Insert *Client ID* and *Client secret* in the plugin settings and click the authorize button.
+1. Insert *Client ID* in the plugin settings and click the authorize button.
 
 ## Technical notes
 
