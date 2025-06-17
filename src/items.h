@@ -9,17 +9,17 @@
 class QJsonObject;
 namespace albert::util { class Download; }
 
-class MediaItem : public QObject,
-                  public albert::Item
+class SpotifyItem : public QObject,
+                    public albert::Item
 {
     Q_OBJECT
 public:
-    MediaItem(spotify::RestApi &api,
+    SpotifyItem(spotify::RestApi &api,
               const QString &spotify_id,
               const QString &title,
               const QString &description,
               const QString &icon_url);
-    ~MediaItem();
+    ~SpotifyItem();
 
     QString id() const override;
     QString text() const override;
@@ -51,7 +51,7 @@ protected:
 };
 
 
-class TrackItem : public MediaItem
+class TrackItem : public SpotifyItem
 {
 public:
     TrackItem(spotify::RestApi&, const QJsonObject&);
@@ -60,7 +60,7 @@ public:
 };
 
 
-class ArtistItem : public MediaItem
+class ArtistItem : public SpotifyItem
 {
 public:
     ArtistItem(spotify::RestApi&, const QJsonObject&);
@@ -69,7 +69,7 @@ public:
 };
 
 
-class AlbumItem : public MediaItem
+class AlbumItem : public SpotifyItem
 {
 public:
     AlbumItem(spotify::RestApi&, const QJsonObject&);
@@ -78,7 +78,7 @@ public:
 };
 
 
-class PlaylistItem : public MediaItem
+class PlaylistItem : public SpotifyItem
 {
 public:
     PlaylistItem(spotify::RestApi&, const QJsonObject&);
@@ -87,7 +87,7 @@ public:
 };
 
 
-class ShowItem : public MediaItem
+class ShowItem : public SpotifyItem
 {
 public:
     ShowItem(spotify::RestApi&, const QJsonObject&);
@@ -96,7 +96,7 @@ public:
 };
 
 
-class EpisodeItem : public MediaItem
+class EpisodeItem : public SpotifyItem
 {
 public:
     EpisodeItem(spotify::RestApi&, const QJsonObject&);
@@ -105,7 +105,7 @@ public:
 };
 
 
-class AudiobookItem : public MediaItem
+class AudiobookItem : public SpotifyItem
 {
 public:
     AudiobookItem(spotify::RestApi&, const QJsonObject&);

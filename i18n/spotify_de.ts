@@ -5,18 +5,18 @@
     <name>ConfigWidget</name>
     <message>
         <source>Spotify client credentials</source>
-        <translation>Spotify-Client-Zugangsdaten</translation>
+        <translation type="vanished">Spotify-Client-Zugangsdaten</translation>
     </message>
     <message>
         <source>Explicit content</source>
-        <translation>Explizite Inhalte</translation>
+        <translation type="vanished">Explizite Inhalte</translation>
     </message>
 </context>
 <context>
     <name>Plugin</name>
     <message>
         <source>Play on Spotify</source>
-        <translation>Auf Spotify abspielen</translation>
+        <translation type="vanished">Auf Spotify abspielen</translation>
     </message>
     <message>
         <source>Spotify tracks</source>
@@ -36,7 +36,7 @@
     </message>
     <message>
         <source>Enter a query</source>
-        <translation>Geben Sie eine Suchanfrage ein</translation>
+        <translation type="vanished">Geben Sie eine Suchanfrage ein</translation>
     </message>
     <message>
         <source>Spotify albums</source>
@@ -80,15 +80,34 @@
     </message>
     <message>
         <source>Play in Spotify</source>
-        <translation>In Spotify abspielen</translation>
+        <translation type="vanished">In Spotify abspielen</translation>
     </message>
     <message>
         <source>Show in Spotify</source>
-        <translation>In Spotify anzeigen</translation>
+        <translation type="vanished">In Spotify anzeigen</translation>
     </message>
     <message>
         <source>Add to queue</source>
-        <translation>Zur Warteschlange hinzufügen</translation>
+        <translation type="vanished">Zur Warteschlange hinzufügen</translation>
+    </message>
+</context>
+<context>
+    <name>SpotifyItem</name>
+    <message>
+        <source>Show in Spotify</source>
+        <translation type="unfinished">In Spotify anzeigen</translation>
+    </message>
+    <message>
+        <source>Play in Spotify</source>
+        <translation type="unfinished">In Spotify abspielen</translation>
+    </message>
+    <message>
+        <source>Play on Spotify</source>
+        <translation type="unfinished">Auf Spotify abspielen</translation>
+    </message>
+    <message>
+        <source>Add to queue</source>
+        <translation type="unfinished">Zur Warteschlange hinzufügen</translation>
     </message>
 </context>
 <context>

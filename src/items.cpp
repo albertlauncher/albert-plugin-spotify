@@ -17,7 +17,7 @@ using namespace albert;
 using namespace spotify;
 using namespace std;
 
-MediaItem::MediaItem(RestApi &api,
+SpotifyItem::SpotifyItem(RestApi &api,
                      const QString &spotify_id,
                      const QString &title,
                      const QString &description,
@@ -30,15 +30,15 @@ MediaItem::MediaItem(RestApi &api,
 {
 }
 
-MediaItem::~MediaItem() = default;
+SpotifyItem::~SpotifyItem() = default;
 
-QString MediaItem::id() const { return spotify_id_; }
+QString SpotifyItem::id() const { return spotify_id_; }
 
-QString MediaItem::text() const { return title_; }
+QString SpotifyItem::text() const { return title_; }
 
-QString MediaItem::subtext() const { return description_; }
+QString SpotifyItem::subtext() const { return description_; }
 
-QStringList MediaItem::iconUrls() const
+QStringList SpotifyItem::iconUrls() const
 {
     if (icon_.isNull())  // lazy, first request
     {
@@ -72,19 +72,19 @@ QStringList MediaItem::iconUrls() const
     return {icon_};  // awaiting if null
 }
 
-void MediaItem::addObserver(Observer *observer) { observers.insert(observer); }
+void SpotifyItem::addObserver(Observer *observer) { observers.insert(observer); }
 
-void MediaItem::removeObserver(Observer *observer) { observers.erase(observer); }
+void SpotifyItem::removeObserver(Observer *observer) { observers.erase(observer); }
 
-QString MediaItem::uri() const { return u"spotify:%1:%2"_s.arg(typeString(type()), id()); }
+QString SpotifyItem::uri() const { return u"spotify:%1:%2"_s.arg(typeString(type()), id()); }
 
-QString MediaItem::tr_show_in() { return tr("Show in Spotify"); }
+QString SpotifyItem::tr_show_in() { return tr("Show in Spotify"); }
 
-QString MediaItem::tr_play_in()  { return tr("Play in Spotify"); }
+QString SpotifyItem::tr_play_in()  { return tr("Play in Spotify"); }
 
-QString MediaItem::tr_play_on() { return tr("Play on Spotify"); }
+QString SpotifyItem::tr_play_on() { return tr("Play on Spotify"); }
 
-QString MediaItem::tr_queue()  { return tr("Add to queue"); }
+QString SpotifyItem::tr_queue()  { return tr("Add to queue"); }
 
 // -------------------------------------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ static QString makeTrackDescription(const QJsonObject &json)
 }
 
 TrackItem::TrackItem(spotify::RestApi &api, const QJsonObject &json):
-    MediaItem(api,
+    SpotifyItem(api,
               json["id"_L1].toString(),
               json["name"_L1].toString(),
               makeTrackDescription(json),
@@ -177,7 +177,7 @@ vector<Action> TrackItem::actions() const
 // -------------------------------------------------------------------------------------------------
 
 ArtistItem::ArtistItem(spotify::RestApi &api, const QJsonObject &json):
-    MediaItem(api,
+    SpotifyItem(api,
               json["id"_L1].toString(),
               json["name"_L1].toString(),
               localizedTypeString(type()),
@@ -204,7 +204,7 @@ static QString makeAlbumDescription(const QJsonObject &json)
 }
 
 AlbumItem::AlbumItem(spotify::RestApi &api, const QJsonObject &json):
-    MediaItem(api,
+    SpotifyItem(api,
               json["id"_L1].toString(),
               json["name"_L1].toString(),
               makeAlbumDescription(json),
@@ -223,7 +223,7 @@ vector<Action> AlbumItem::actions() const
 // -------------------------------------------------------------------------------------------------
 
 PlaylistItem::PlaylistItem(spotify::RestApi &api, const QJsonObject &json):
-    MediaItem(api,
+    SpotifyItem(api,
               json["id"_L1].toString(),
               json["name"_L1].toString(),
               u"%1 · %2"_s.arg(localizedTypeString(Playlist),
@@ -242,7 +242,7 @@ vector<Action> PlaylistItem::actions() const
 // -------------------------------------------------------------------------------------------------
 
 ShowItem::ShowItem(spotify::RestApi &api, const QJsonObject &json):
-    MediaItem(api,
+    SpotifyItem(api,
               json["id"_L1].toString(),
               json["name"_L1].toString(),
               u"%1 · %2"_s.arg(localizedTypeString(Show),
@@ -272,7 +272,7 @@ static QString makeEpisodeDescription(const QJsonObject &json)
 }
 
 EpisodeItem::EpisodeItem(spotify::RestApi &api, const QJsonObject &json):
-    MediaItem(api,
+    SpotifyItem(api,
               json["id"_L1].toString(),
               json["name"_L1].toString(),
               makeEpisodeDescription(json),
@@ -309,7 +309,7 @@ static QString makeAudiobookDescription(const QJsonObject &json)
 }
 
 AudiobookItem::AudiobookItem(spotify::RestApi &api, const QJsonObject &json):
-    MediaItem(api,
+    SpotifyItem(api,
               json["id"_L1].toString(),
               json["name"_L1].toString(),
               makeAudiobookDescription(json),

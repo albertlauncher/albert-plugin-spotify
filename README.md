@@ -2,8 +2,15 @@
 
 ## Features
 
-- Provides triggered query handlers for Spotify *album*, *artist*, *playlist*, *track*, *show*,
-  *episode* and *audiobook* searches.
+- Provides triggered query handlers for Spotify searches. 
+  Besides their obvious primary purpose the empty query for
+  - *track* returns the users top tracks
+  - *artist* returns the users top artists
+  - *album* returns the users saved albums
+  - *playlist*  returns the users saved playlists
+  - *show* returns the users saved shows
+  - *episode* returns the users saved episodes
+  - *audiobook* returns the users saved audiobooks
 - Play/queue media on your Spotify clients
 
 ## Limitations

@@ -18,10 +18,13 @@ static const auto oauth_auth_url = u"https://accounts.spotify.com/authorize"_s;
 static const auto oauth_token_url = u"https://accounts.spotify.com/api/token"_s;
 static const auto oauth_scope = u"playlist-read-collaborative "_s
                                 u"playlist-read-private "_s
+                                u"user-follow-read "_s
                                 u"user-modify-playback-state "_s
                                 u"user-read-playback-state "_s
                                 u"user-read-private "_s
+                                u"user-top-read "_s
                                 u"user-library-read"_s;
+
 
 static const std::array<const char*, 7> type_strings {
     //: Not literally, use Spotify client translations.
@@ -137,10 +140,18 @@ variant<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
     return u"%1: %2"_s.arg(reply->errorString(), QString::fromUtf8(data));
 }
 
-QNetworkRequest RestApi::request(const QString &p, const QUrlQuery &q) const
+QNetworkRequest RestApi::request(const QString &path, const QUrlQuery &query) const
 {
-    const auto auth_header = "Bearer " + oauth.accessToken().toUtf8();
-    return makeRestRequest(u"https://api.spotify.com"_s, p, q, auth_header);
+    QUrl url(u"https://api.spotify.com"_s);
+    url.setPath(path);
+    url.setQuery(query);
+
+    QNetworkRequest request(url);
+    request.setRawHeader("Accept", "application/json");
+    if (oauth.state() == OAuth2::State::Granted)
+        request.setRawHeader("Authorization", "Bearer " + oauth.accessToken().toUtf8());
+
+    return request;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -151,13 +162,37 @@ QNetworkReply *RestApi::userProfile() const
     return network().get(request(u"/v1/me"_s, {}));
 }
 
-QNetworkReply *RestApi::userTracks(uint limit, uint offset) const
+// QNetworkReply *RestApi::userTracks(uint limit, uint offset) const
+// {
+//     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-tracks
+//     return network().get(request(u"/v1/me/tracks"_s,
+//                                  {{u"limit"_s, QString::number(limit)},
+//                                   {u"offset"_s, QString::number(offset)}}));
+// }
+
+QNetworkReply *RestApi::userTopTracks(uint limit, uint offset) const
 {
-    // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-tracks
-    return network().get(request(u"/v1/me/tracks"_s,
+    // https://developer.spotify.com/documentation/web-api/reference/get-users-top-artists-and-tracks
+    return network().get(request(u"/v1/me/top/tracks"_s,
                                  {{u"limit"_s, QString::number(limit)},
                                   {u"offset"_s, QString::number(offset)}}));
 }
+
+QNetworkReply *RestApi::userTopArtists(uint limit, uint offset) const
+{
+    // https://developer.spotify.com/documentation/web-api/reference/get-users-top-artists-and-tracks
+    return network().get(request(u"/v1/me/top/artists"_s,
+                                 {{u"limit"_s, QString::number(limit)},
+                                  {u"offset"_s, QString::number(offset)}}));
+}
+
+// QNetworkReply *RestApi::userArtists(uint limit) const
+// {
+//     // https://developer.spotify.com/documentation/web-api/reference/get-followed
+//     return network().get(request(u"/v1/me/following"_s,
+//                                  {{u"limit"_s, QString::number(limit)},
+//                                   {u"type"_s, typeString(Artist)}}));
+// }
 
 QNetworkReply *RestApi::userAlbums(uint limit, uint offset) const
 {

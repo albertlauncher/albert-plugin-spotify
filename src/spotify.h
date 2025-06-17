@@ -47,7 +47,9 @@ public:
                                         uint limit = 50, uint offset = 0) const;
 
 
-    [[nodiscard]] QNetworkReply *userTracks(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userTopTracks(uint limit = 50, uint offset = 0) const;
+
+    [[nodiscard]] QNetworkReply *userTopArtists(uint limit = 50, uint offset = 0) const;
 
     [[nodiscard]] QNetworkReply *userAlbums(uint limit = 50, uint offset = 0) const;
 

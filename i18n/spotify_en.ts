@@ -2,22 +2,7 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
-    <name>ConfigWidget</name>
-    <message>
-        <source>Spotify client credentials</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>Explicit content</source>
-        <translation></translation>
-    </message>
-</context>
-<context>
     <name>Plugin</name>
-    <message>
-        <source>Play on Spotify</source>
-        <translation></translation>
-    </message>
     <message>
         <source>Spotify tracks</source>
         <translation></translation>
@@ -32,10 +17,6 @@
     </message>
     <message>
         <source>Search Spotify artists</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>Enter a query</source>
         <translation></translation>
     </message>
     <message>
@@ -78,17 +59,24 @@
         <source>Search Spotify audiobooks</source>
         <translation></translation>
     </message>
-    <message>
-        <source>Play in Spotify</source>
-        <translation></translation>
-    </message>
+</context>
+<context>
+    <name>SpotifyItem</name>
     <message>
         <source>Show in Spotify</source>
-        <translation></translation>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Play in Spotify</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Play on Spotify</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Add to queue</source>
-        <translation></translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
