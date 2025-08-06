@@ -20,9 +20,12 @@ using namespace std;
 #if defined Q_OS_MAC
 static void pauseSpotify()
 {
-    if (auto error = runAppleScript(uR"(tell application "Spotify" to pause)"_s);
-        !error.isEmpty())
-        WARN << error;
+
+    try {
+        runAppleScript(uR"(tell application "Spotify" to pause)"_s);
+    } catch (const std::runtime_error &e) {
+        WARN << e.what();
+    }
 }
 #elif defined Q_OS_LINUX
 #include <QDBusInterface>
