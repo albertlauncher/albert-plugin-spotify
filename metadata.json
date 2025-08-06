@@ -3,6 +3,7 @@
   "description": "Control Spotify clients",
   "description[de]": "Spotify-Clients steuern",
   "license": "MIT",
+  "maintainers": ["@manuelschneid3r"],
   "name": "Spotify",
   "url": "https://github.com/albertlauncher/albert-plugin-spotify",
   "readme_url": "https://github.com/albertlauncher/albert-plugin-spotify/blob/main/README.md"
