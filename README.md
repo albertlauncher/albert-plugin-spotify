@@ -1,4 +1,4 @@
-# albert-plugin-spotify
+# Albert plugin: Spotify
 
 ## Features
 
