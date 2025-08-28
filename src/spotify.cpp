@@ -256,7 +256,7 @@ QNetworkReply *RestApi::search(const QString &query,
 
     return network().get(request(u"/v1/search"_s,
                                  {
-                                  {u"q"_s, QString::fromUtf8(QUrl::toPercentEncoding(query))},
+                                  {u"q"_s, percentEncoded(query)},
                                   {u"type"_s, typeString(type)},
                                   {u"limit"_s, QString::number(limit)},
                                   {u"offset"_s, QString::number(offset)}
