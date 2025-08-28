@@ -142,9 +142,31 @@ static void queue(spotify::RestApi &api, const QString &uri)
 
 static QString pickImageUrl(const QJsonArray &arr)
 {
-    INFO << "----";
-    CRIT << arr;
-    return arr.last()["url"_L1].toString();  // TODO
+    if (arr.isEmpty())
+        return {};
+
+    static const auto target_size = 128;
+
+    auto reference = arr.begin()->toObject();
+    auto rw = reference["width"_L1].toInt();
+
+    for (auto i = next(arr.begin()); i != arr.end(); ++i)
+        if (const auto cw = i->toObject()["width"_L1].toInt();
+            rw < target_size)
+        {
+            if (rw < cw)
+            {
+                reference = i->toObject();
+                rw = cw;
+            }
+        }
+        else if (cw < rw && cw >= target_size)
+        {
+            reference = i->toObject();
+            rw = cw;
+        }
+
+    return reference["url"_L1].toString();  // TODO
 }
 
 // -------------------------------------------------------------------------------------------------
