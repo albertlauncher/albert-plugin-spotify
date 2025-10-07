@@ -7,6 +7,7 @@
 #include <memory>
 #include <set>
 class QJsonObject;
+namespace albert { class Icon; }
 namespace albert::util { class Download; }
 
 class SpotifyItem : public QObject,
@@ -24,7 +25,7 @@ public:
     QString id() const override;
     QString text() const override;
     QString subtext() const override;
-    QStringList iconUrls() const override;
+    std::unique_ptr<albert::Icon> icon() const override;
 
     void addObserver(Observer *observer) override;
     void removeObserver(Observer *observer) override;
@@ -45,7 +46,7 @@ protected:
     QString title_;
     QString description_;
     QString icon_url_;
-    mutable QString icon_;
+    mutable std::unique_ptr<albert::Icon> icon_;
     mutable std::shared_ptr<albert::util::Download> download_;
 
 };

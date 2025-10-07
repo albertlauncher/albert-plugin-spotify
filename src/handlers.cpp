@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QThread>
+#include <albert/iconutil.h>
 #include <albert/logging.h>
 #include <albert/standarditem.h>
 using namespace Qt::StringLiterals;
@@ -17,11 +18,11 @@ using namespace std;
 
 static const auto items = u"items";
 
-static shared_ptr<Item> makeErrorItem(const QString &error)
+static auto makeErrorItem(const QString &error)
 {
-    static const QStringList icon{u"comp:?src1=%3Aspotify&src2=qsp%3ASP_MessageBoxWarning"_s};
     WARN << error;
-    return StandardItem::make(u"notify"_s, u"Spotify"_s, error, icon);
+    auto ico_fac = []{ return makeComposedIcon(makeThemeIcon(u"spotify"_s), makeStandardIcon(MessageBoxWarning)); };
+    return StandardItem::make(u"notify"_s, u"Spotify"_s, error, ::move(ico_fac));
 }
 
 SpotifySearchHandler::SpotifySearchHandler(RestApi &api,
