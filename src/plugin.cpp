@@ -54,27 +54,43 @@ Plugin::Plugin() :
     audiobook_search_handler(api)
 {
     // Read tokens
-    if (auto secrets = readKeychain(kck_secrets).split(QChar::Tabulation);
-        secrets.size() == 4)
-    {
-        api.oauth.setClientId(secrets[0]);
-        api.oauth.setClientSecret(secrets[1]);
-        api.oauth.setTokens(
-            secrets[2],
-            secrets[3],
-            state()->value(sk_token_expiration).toDateTime()
-        );
-    }
+    readKeychain(kck_secrets,
+                 [this](const QString &value){
+                     if (auto secrets = value.split(QChar::Tabulation);
+                         secrets.size() == 4)
+                     {
+                         api.oauth.setClientId(secrets[0]);
+                         api.oauth.setClientSecret(secrets[1]);
+                         api.oauth.setTokens(
+                             secrets[2],
+                             secrets[3],
+                             state()->value(sk_token_expiration).toDateTime()
+                             );
+                         DEBG << "Successfully read Spotify OAuth credentials to keychain.";
+                     }
+                     else
+                         WARN << "Unexpected format of the Spotify OAuth credentials read from keychain.";
+                 },
+                 [](const QString & error){
+                     WARN << "Failed to read Spotify OAuth credentials to keychain:" << error;
+                 });
+
 
     const auto writeAuthConfig = [this]{
         state()->setValue(sk_token_expiration, api.oauth.tokenExpiration());
-        const auto secrets = QStringList{
-            api.oauth.clientId(),
-            api.oauth.clientSecret(),
-            api.oauth.accessToken(),
-            api.oauth.refreshToken()
-        }.join(QChar::Tabulation);
-        writeKeychain(kck_secrets, secrets);
+        writeKeychain(kck_secrets,
+                      QStringList{
+                          api.oauth.clientId(),
+                          api.oauth.clientSecret(),
+                          api.oauth.accessToken(),
+                          api.oauth.refreshToken()
+                      }.join(QChar::Tabulation),
+                      [] {
+                          DEBG << "Successfully wrote Spotify OAuth credentials to keychain.";
+                      },
+                      [](const QString &error){
+                          WARN << "Failed to write Spotify OAuth credentials to keychain:" << error;
+                      });
     };
 
     connect(&api.oauth, &OAuth2::clientIdChanged, this, writeAuthConfig);
