@@ -11,7 +11,6 @@
 #include <albert/logging.h>
 #include <albert/standarditem.h>
 using namespace Qt::StringLiterals;
-using namespace albert::util;
 using namespace albert;
 using namespace spotify;
 using namespace std;
@@ -45,12 +44,12 @@ QString SpotifySearchHandler::description() const { return description_; }
 QString SpotifySearchHandler::defaultTrigger() const
 { return localizedTypeString(type()).toLower() + QChar::Space; }
 
-void SpotifySearchHandler::handleTriggerQuery(albert::Query &q)
+void SpotifySearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         return;
 
-    else if (!limiter_.debounce(q.isValid()))
+    else if (!limiter_.acquireBlocking([&q]{ return q.isValid(); }))
         return;
 
     else if (const auto var = RestApi::parseJson(await(api_.search(q, type())));
@@ -74,12 +73,12 @@ void SpotifySearchHandler::handleTriggerQuery(albert::Query &q)
 }
 
 void SpotifySearchHandler::apiCall(
-    albert::Query &q,
+    ThreadedQuery &q,
     function<QNetworkReply*()> api_call,
     function<void(const QJsonDocument&, vector<shared_ptr<Item>>&)> success_handler) const
 {
     if (static auto limiter = albert::detail::RateLimiter(1000);
-        !limiter.debounce(q.isValid()))
+        !limiter.acquireBlocking([&q]{ return q.isValid(); }))
         return;
 
     else if (const auto var = RestApi::parseJson(await(api_call()));
@@ -109,7 +108,7 @@ SearchType TrackSearchHandler::type() const { return Track; }
 std::shared_ptr<SpotifyItem> TrackSearchHandler::parseItem(const QJsonObject &o) const
 { return make_shared<TrackItem>(api_, o); }
 
-void TrackSearchHandler::handleTriggerQuery(albert::Query &q)
+void TrackSearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         apiCall(q,
@@ -123,7 +122,7 @@ void TrackSearchHandler::handleTriggerQuery(albert::Query &q)
                     }
                 });
     else
-        SpotifySearchHandler::handleTriggerQuery(q);
+        SpotifySearchHandler::handleThreadedQuery(q);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -140,7 +139,7 @@ SearchType ArtistSearchHandler::type() const { return Artist; }
 std::shared_ptr<SpotifyItem> ArtistSearchHandler::parseItem(const QJsonObject &o) const
 { return make_shared<ArtistItem>(api_, o); }
 
-void ArtistSearchHandler::handleTriggerQuery(albert::Query &q)
+void ArtistSearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         apiCall(q,
@@ -154,7 +153,7 @@ void ArtistSearchHandler::handleTriggerQuery(albert::Query &q)
                     }
                 });
     else
-        SpotifySearchHandler::handleTriggerQuery(q);
+        SpotifySearchHandler::handleThreadedQuery(q);
 }
 
 
@@ -172,7 +171,7 @@ SearchType AlbumSearchHandler::type() const { return Album; }
 std::shared_ptr<SpotifyItem> AlbumSearchHandler::parseItem(const QJsonObject &o) const
 { return make_shared<AlbumItem>(api_, o); }
 
-void AlbumSearchHandler::handleTriggerQuery(albert::Query &q)
+void AlbumSearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         apiCall(q,
@@ -186,7 +185,7 @@ void AlbumSearchHandler::handleTriggerQuery(albert::Query &q)
                     }
                 });
     else
-        SpotifySearchHandler::handleTriggerQuery(q);
+        SpotifySearchHandler::handleThreadedQuery(q);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -203,7 +202,7 @@ SearchType PlaylistSearchHandler::type() const { return Playlist; }
 std::shared_ptr<SpotifyItem> PlaylistSearchHandler::parseItem(const QJsonObject &o) const
 { return make_shared<PlaylistItem>(api_, o); }
 
-void PlaylistSearchHandler::handleTriggerQuery(albert::Query &q)
+void PlaylistSearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         apiCall(q,
@@ -217,7 +216,7 @@ void PlaylistSearchHandler::handleTriggerQuery(albert::Query &q)
                     }
                 });
     else
-        SpotifySearchHandler::handleTriggerQuery(q);
+        SpotifySearchHandler::handleThreadedQuery(q);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -234,7 +233,7 @@ SearchType ShowSearchHandler::type() const { return Show; }
 std::shared_ptr<SpotifyItem> ShowSearchHandler::parseItem(const QJsonObject &o) const
 { return make_shared<ShowItem>(api_, o); }
 
-void ShowSearchHandler::handleTriggerQuery(albert::Query &q)
+void ShowSearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         apiCall(q,
@@ -248,7 +247,7 @@ void ShowSearchHandler::handleTriggerQuery(albert::Query &q)
                     }
                 });
     else
-        SpotifySearchHandler::handleTriggerQuery(q);
+        SpotifySearchHandler::handleThreadedQuery(q);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -265,7 +264,7 @@ SearchType EpisodeSearchHandler::type() const { return Episode; }
 std::shared_ptr<SpotifyItem> EpisodeSearchHandler::parseItem(const QJsonObject &o) const
 { return make_shared<EpisodeItem>(api_, o); }
 
-void EpisodeSearchHandler::handleTriggerQuery(albert::Query &q)
+void EpisodeSearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         apiCall(q,
@@ -281,7 +280,7 @@ void EpisodeSearchHandler::handleTriggerQuery(albert::Query &q)
                         }
                 });
     else
-        SpotifySearchHandler::handleTriggerQuery(q);
+        SpotifySearchHandler::handleThreadedQuery(q);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -298,7 +297,7 @@ SearchType AudiobookSearchHandler::type() const { return Audiobook; }
 std::shared_ptr<SpotifyItem> AudiobookSearchHandler::parseItem(const QJsonObject &o) const
 { return make_shared<AudiobookItem>(api_, o); }
 
-void AudiobookSearchHandler::handleTriggerQuery(albert::Query &q)
+void AudiobookSearchHandler::handleThreadedQuery(ThreadedQuery &q)
 {
     if (q.string().isEmpty())
         apiCall(q,
@@ -312,5 +311,5 @@ void AudiobookSearchHandler::handleTriggerQuery(albert::Query &q)
                     }
                 });
     else
-        SpotifySearchHandler::handleTriggerQuery(q);
+        SpotifySearchHandler::handleThreadedQuery(q);
 }

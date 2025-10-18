@@ -10,7 +10,7 @@
 #include <albert/logging.h>
 #include <albert/networkutil.h>
 using namespace Qt::StringLiterals;
-using namespace albert::util;
+using namespace albert;
 using namespace spotify;
 using namespace std;
 

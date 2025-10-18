@@ -7,7 +7,7 @@
 #include <albert/urlhandler.h>
 #include <vector>
 
-class Plugin final : public albert::util::ExtensionPlugin,
+class Plugin final : public albert::ExtensionPlugin,
                      private albert::UrlHandler
 {
     ALBERT_PLUGIN

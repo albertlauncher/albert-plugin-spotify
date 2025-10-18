@@ -69,7 +69,7 @@ public:
     [[nodiscard]] QNetworkReply *queue(const QString &uri, const QString& deviceId = {}) const;
 
 
-    albert::util::OAuth2 oauth;
+    albert::OAuth2 oauth;
 
 private:
 

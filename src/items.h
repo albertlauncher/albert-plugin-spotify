@@ -7,8 +7,7 @@
 #include <memory>
 #include <set>
 class QJsonObject;
-namespace albert { class Icon; }
-namespace albert::util { class Download; }
+namespace albert { class Download; class Icon; }
 
 class SpotifyItem : public QObject,
                     public albert::Item
@@ -47,7 +46,7 @@ protected:
     QString description_;
     QString icon_url_;
     mutable std::unique_ptr<albert::Icon> icon_;
-    mutable std::shared_ptr<albert::util::Download> download_;
+    mutable std::shared_ptr<albert::Download> download_;
 
 };
 

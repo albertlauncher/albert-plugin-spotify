@@ -2,12 +2,11 @@
 
 #include "plugin.h"
 #include <QSettings>
-#include <albert/albert.h>
+#include <albert/app.h>
 #include <albert/logging.h>
 #include <albert/oauthconfigwidget.h>
 ALBERT_LOGGING_CATEGORY("spotify")
 using namespace Qt::StringLiterals;
-using namespace albert::util;
 using namespace albert;
 using namespace std;
 
@@ -122,5 +121,5 @@ vector<Extension*> Plugin::extensions() {
 void Plugin::handle(const QUrl &url)
 {
     api.oauth.handleCallback(url);
-    showSettings(id());
+    App::instance().showSettings(id());
 }

@@ -6,7 +6,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <albert/albert.h>
+#include <albert/app.h>
 #include <albert/download.h>
 #include <albert/iconutil.h>
 #include <albert/logging.h>
@@ -14,7 +14,6 @@
 #include <albert/systemutil.h>
 #include <ranges>
 using namespace Qt::StringLiterals;
-using namespace albert::util;
 using namespace albert;
 using namespace spotify;
 using namespace std;
@@ -67,7 +66,7 @@ std::unique_ptr<Icon> SpotifyItem::icon() const
 {
     if (!icon_)  // lazy, first request
     {
-        const auto icons_location = cacheLocation() / "spotify" / "icons";
+        const auto icons_location = App::cacheLocation() / "spotify" / "icons";
 
         if (const auto icon_path = QDir(icons_location).filePath(id() + u".jpeg"_s);
             QFile::exists(icon_path))
