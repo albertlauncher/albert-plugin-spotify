@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/icons/fallback/scalable">
-        <file alias="spotify">resources/spotify.svg</file>
+        <file>spotify.svg</file>
     </qresource>
 </RCC>

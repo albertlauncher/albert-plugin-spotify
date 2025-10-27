@@ -20,7 +20,8 @@ static const auto items = u"items";
 static auto makeErrorItem(const QString &error)
 {
     WARN << error;
-    auto ico_fac = []{ return makeComposedIcon(makeThemeIcon(u"spotify"_s), makeStandardIcon(MessageBoxWarning)); };
+    auto ico_fac = [] { return makeComposedIcon(makeThemeIcon(u"spotify"_s),
+                                                makeStandardIcon(MessageBoxWarning));};
     return StandardItem::make(u"notify"_s, u"Spotify"_s, error, ::move(ico_fac));
 }
 
