@@ -359,24 +359,24 @@ vector<Action> EpisodeItem::actions() const
 static QString makeAudiobookDescription(const QJsonObject &json)
 {
     auto v = json["authors"_L1].toArray()
-             | views::transform([](const QJsonValue& a){ return a["name"_L1].toString(); });
+             | views::transform([](const QJsonValue &a) { return a["name"_L1].toString(); });
 
-    return u"%1 · %2"_s.arg(localizedTypeString(Audiobook),
-                            QStringList(v.begin(), v.end()).join(u", "_s));
+    return QStringList(v.begin(), v.end()).join(u", "_s);
 }
 
 AudiobookItem::AudiobookItem(const spotify::RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
-              json["id"_L1].toString(),
-              json["name"_L1].toString(),
-              makeAudiobookDescription(json),
-              pickImageUrl(json["images"_L1].toArray())) { }
+                json["id"_L1].toString(),
+                json["name"_L1].toString(),
+                makeAudiobookDescription(json),
+                pickImageUrl(json["images"_L1].toArray()))
+{}
 
 SearchType AudiobookItem::type() const { return Audiobook; }
 
 vector<Action> AudiobookItem::actions() const
 {
     vector<Action> actions;
-    actions.emplace_back(u"show"_s, tr_show_in(),[this]{ openUrl(uri()); });
+    actions.emplace_back(u"show"_s, tr_show_in(), [this] { openUrl(uri()); });
     return actions;
 }
