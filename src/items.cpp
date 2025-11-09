@@ -169,19 +169,18 @@ static QString pickImageUrl(const QJsonArray &arr)
 static QString makeTrackDescription(const QJsonObject &json)
 {
     auto view = json["artists"_L1].toArray()
-                | views::transform([](const QJsonValue& a){ return a["name"_L1].toString(); });
+                | views::transform([](const QJsonValue &a) { return a["name"_L1].toString(); });
 
-    return u"%1 · %2 · %3"_s.arg(localizedTypeString(Track),
-                                 QStringList(view.begin(), view.end()).join(u", "_s),
-                                 json["album"_L1]["name"_L1].toString());
+    return QStringList(view.begin(), view.end()).join(u", "_s);
 }
 
 TrackItem::TrackItem(const spotify::RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
-              json["id"_L1].toString(),
-              json["name"_L1].toString(),
-              makeTrackDescription(json),
-              pickImageUrl(json["album"_L1]["images"_L1].toArray())) { }
+                json["id"_L1].toString(),
+                json["name"_L1].toString(),
+                makeTrackDescription(json),
+                pickImageUrl(json["album"_L1]["images"_L1].toArray()))
+{}
 
 SearchType TrackItem::type() const { return Track; }
 
@@ -197,7 +196,7 @@ vector<Action> TrackItem::actions() const
     else
     {
         pauseSpotify();
-        actions.emplace_back(u"playlocal"_s, tr_play_in(), [this]{ openUrl(uri()); });
+        actions.emplace_back(u"playlocal"_s, tr_play_in(), [this] { openUrl(uri()); });
     }
 
     return actions;
