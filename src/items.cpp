@@ -265,26 +265,25 @@ vector<Action> ArtistItem::actions() const
 static QString makeAlbumDescription(const QJsonObject &json)
 {
     auto v = json["artists"_L1].toArray()
-             | views::transform([](const QJsonValue& a){ return a["name"_L1].toString(); });
+             | views::transform([](const QJsonValue &a) { return a["name"_L1].toString(); });
 
-    return u"%1 · %2"_s.arg(localizedTypeString(Album),
-                            QStringList{begin(v), end(v)}.join(u", "_s));
+    return QStringList{begin(v), end(v)}.join(u", "_s);
 }
 
 AlbumItem::AlbumItem(const spotify::RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
-              json["id"_L1].toString(),
-              json["name"_L1].toString(),
-              makeAlbumDescription(json),
-              pickImageUrl(json["images"_L1].toArray())) { }
-
+                json["id"_L1].toString(),
+                json["name"_L1].toString(),
+                makeAlbumDescription(json),
+                pickImageUrl(json["images"_L1].toArray()))
+{}
 
 SearchType AlbumItem::type() const { return Album; }
 
 vector<Action> AlbumItem::actions() const
 {
     vector<Action> actions;
-    actions.emplace_back(u"show"_s, tr_show_in(), [this]{ openUrl(uri()); });
+    actions.emplace_back(u"show"_s, tr_show_in(), [this] { openUrl(uri()); });
     return actions;
 }
 
