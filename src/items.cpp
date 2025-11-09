@@ -204,19 +204,59 @@ vector<Action> TrackItem::actions() const
 
 // -------------------------------------------------------------------------------------------------
 
+static QString makeArtistDescription(const QJsonObject &json)
+{
+    const auto view = json["genres"_L1].toArray()
+                      | views::transform([](const QJsonValue &a) {
+                          auto s = a.toString();
+
+                          // Capitalize each word
+                          bool first = true;
+                          for (auto &c : s)
+                              if (c.isLetter())
+                              {
+                                  if (first)
+                                  {
+                                      c = c.toUpper();
+                                      first = false;
+                                  }
+                              }
+                              else
+                                  first = true;
+                          return s;
+                      });
+
+
+    QString sfollowers;
+    if (const auto followers = json["followers"_L1]["total"_L1].toInt();
+        followers > 1'000'000)
+        sfollowers = u"✨%1M"_s.arg(followers / 1'000'000);
+    else if (followers > 1'000)
+        sfollowers = u"✨%1k"_s.arg(followers / 1'000);
+    else
+        sfollowers = u"✨%1"_s.arg(followers);
+
+    if (view.size() == 0)
+        return sfollowers;
+    else
+        return u"%1 · %2"_s.arg(sfollowers, QStringList(view.begin(), view.end()).join(u", "_s));
+
+}
+
 ArtistItem::ArtistItem(const spotify::RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
-              json["id"_L1].toString(),
-              json["name"_L1].toString(),
-              localizedTypeString(type()),
-              pickImageUrl(json["images"_L1].toArray())) { }
+                json["id"_L1].toString(),
+                json["name"_L1].toString(),
+                makeArtistDescription(json),
+                pickImageUrl(json["images"_L1].toArray()))
+{}
 
 SearchType ArtistItem::type() const { return Artist; }
 
 vector<Action> ArtistItem::actions() const
 {
     vector<Action> actions;
-    actions.emplace_back(u"show"_s, tr_show_in(), [this]{ openUrl(uri()); });
+    actions.emplace_back(u"show"_s, tr_show_in(), [this] { openUrl(uri()); });
     return actions;
 }
 
