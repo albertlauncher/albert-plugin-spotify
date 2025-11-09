@@ -86,18 +86,13 @@ std::unique_ptr<Icon> SpotifyItem::icon() const
                     icon_ = makeThemeIcon(u"spotify"_s);
                 }
 
-                for (auto observer : observers)
-                    observer->notify(this);
+                dataChanged();
             });
         }
     }
 
     return icon_ ? icon_->clone() : nullptr;  // awaiting if null
 }
-
-void SpotifyItem::addObserver(Observer *observer) { observers.insert(observer); }
-
-void SpotifyItem::removeObserver(Observer *observer) { observers.erase(observer); }
 
 QString SpotifyItem::uri() const { return u"spotify:%1:%2"_s.arg(typeString(type()), id()); }
 

@@ -5,12 +5,10 @@
 #include <QObject>
 #include <albert/item.h>
 #include <memory>
-#include <set>
 class QJsonObject;
 namespace albert { class Download; class Icon; }
 
-class SpotifyItem : public QObject,
-                    public albert::Item
+class SpotifyItem : public QObject, public albert::detail::DynamicItem
 {
     Q_OBJECT
 public:
@@ -26,9 +24,6 @@ public:
     QString subtext() const override;
     std::unique_ptr<albert::Icon> icon() const override;
 
-    void addObserver(Observer *observer) override;
-    void removeObserver(Observer *observer) override;
-
     virtual spotify::SearchType type() const = 0;
     QString uri() const;
 
@@ -39,7 +34,6 @@ protected:
     static QString tr_play_on();
     static QString tr_queue();
 
-    std::set<Item::Observer*> observers;
     spotify::RestApi &api_;
     QString spotify_id_;
     QString title_;
