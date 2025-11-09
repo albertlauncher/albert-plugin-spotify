@@ -8,9 +8,6 @@ class QNetworkReply;
 class QNetworkRequest;
 class QUrlQuery;
 
-namespace spotify
-{
-
 enum SearchType {
     Track,
     Artist,
@@ -80,4 +77,3 @@ private:
     bool is_premium_ = false;
 
 };
-}

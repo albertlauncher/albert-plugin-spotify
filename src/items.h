@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2025 Manuel Schneider
 
 #pragma once
-#include "spotify.h"
+#include "api.h"
 #include <QObject>
 #include <albert/item.h>
 #include <memory>
@@ -12,7 +12,7 @@ class SpotifyItem : public QObject, public albert::detail::DynamicItem
 {
     Q_OBJECT
 public:
-    SpotifyItem(const spotify::RestApi &api,
+    SpotifyItem(const RestApi &api,
                 const QString &spotify_id,
                 const QString &title,
                 const QString &description,
@@ -24,7 +24,7 @@ public:
     QString subtext() const override;
     std::unique_ptr<albert::Icon> icon() const override;
 
-    virtual spotify::SearchType type() const = 0;
+    virtual SearchType type() const = 0;
     QString uri() const;
 
 protected:
@@ -34,7 +34,7 @@ protected:
     static QString tr_play_on();
     static QString tr_queue();
 
-    const spotify::RestApi &api_;
+    const RestApi &api_;
     QString spotify_id_;
     QString title_;
     QString description_;
@@ -48,8 +48,8 @@ protected:
 class TrackItem : public SpotifyItem
 {
 public:
-    TrackItem(const spotify::RestApi&, const QJsonObject&);
-    spotify::SearchType type() const override final;
+    TrackItem(const RestApi&, const QJsonObject&);
+    SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
 
@@ -57,8 +57,8 @@ public:
 class ArtistItem : public SpotifyItem
 {
 public:
-    ArtistItem(const spotify::RestApi&, const QJsonObject&);
-    spotify::SearchType type() const override final;
+    ArtistItem(const RestApi&, const QJsonObject&);
+    SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
 
@@ -66,8 +66,8 @@ public:
 class AlbumItem : public SpotifyItem
 {
 public:
-    AlbumItem(const spotify::RestApi&, const QJsonObject&);
-    spotify::SearchType type() const override final;
+    AlbumItem(const RestApi&, const QJsonObject&);
+    SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
 
@@ -75,8 +75,8 @@ public:
 class PlaylistItem : public SpotifyItem
 {
 public:
-    PlaylistItem(const spotify::RestApi&, const QJsonObject&);
-    spotify::SearchType type() const override final;
+    PlaylistItem(const RestApi&, const QJsonObject&);
+    SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
 
@@ -84,8 +84,8 @@ public:
 class ShowItem : public SpotifyItem
 {
 public:
-    ShowItem(const spotify::RestApi&, const QJsonObject&);
-    spotify::SearchType type() const override final;
+    ShowItem(const RestApi&, const QJsonObject&);
+    SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
 
@@ -93,8 +93,8 @@ public:
 class EpisodeItem : public SpotifyItem
 {
 public:
-    EpisodeItem(const spotify::RestApi&, const QJsonObject&);
-    spotify::SearchType type() const override final;
+    EpisodeItem(const RestApi&, const QJsonObject&);
+    SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
 
@@ -102,7 +102,7 @@ public:
 class AudiobookItem : public SpotifyItem
 {
 public:
-    AudiobookItem(const spotify::RestApi&, const QJsonObject&);
-    spotify::SearchType type() const override final;
+    AudiobookItem(const RestApi&, const QJsonObject&);
+    SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };

@@ -48,4 +48,4 @@ This plugin is work in progress. Currently the items support these actions:
 ## Technical notes
 
 - Uses the [Spotfiy Web API](https://developer.spotify.com/documentation/web-api).
-- See `spotify.h` for the endpoints used.
+- See `api.h` for the endpoints used.

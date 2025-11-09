@@ -1,6 +1,6 @@
 // Copyright (c) 2025-2025 Manuel Schneider
 
-#include "spotify.h"
+#include "api.h"
 #include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -11,7 +11,6 @@
 #include <albert/networkutil.h>
 using namespace Qt::StringLiterals;
 using namespace albert;
-using namespace spotify;
 using namespace std;
 
 static const auto oauth_auth_url = u"https://accounts.spotify.com/authorize"_s;
@@ -43,10 +42,10 @@ static const std::array<const char*, 7> type_strings {
     QT_TRANSLATE_NOOP("spotify", "audiobook")
 };
 
-QString spotify::typeString(SearchType type)
+QString typeString(SearchType type)
 { return QString::fromUtf8(type_strings[static_cast<int>(type)]); }
 
-QString spotify::localizedTypeString(SearchType type)
+QString localizedTypeString(SearchType type)
 { return QCoreApplication::translate("spotify", type_strings[static_cast<int>(type)]); }
 
 // -------------------------------------------------------------------------------------------------
@@ -241,7 +240,7 @@ QNetworkReply *RestApi::getDevices() const
 }
 
 QNetworkReply *RestApi::search(const QString &query,
-                               spotify::SearchType type,
+                               SearchType type,
                                uint limit,
                                uint offset) const
 {

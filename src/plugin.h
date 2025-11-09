@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2025 Manuel Schneider
 
 #pragma once
+#include "api.h"
 #include "handlers.h"
-#include "spotify.h"
 #include <albert/extensionplugin.h>
 #include <albert/urlhandler.h>
 #include <vector>
@@ -23,7 +23,7 @@ public:
 
 private:
 
-    spotify::RestApi api;
+    RestApi api;
 
     TrackSearchHandler track_search_handler;
     ArtistSearchHandler artist_search_hanlder;

@@ -17,7 +17,6 @@
 using namespace Qt::StringLiterals;
 using namespace albert::detail;
 using namespace albert;
-using namespace spotify;
 using namespace std;
 
 static const auto items_key = "items"_L1;
