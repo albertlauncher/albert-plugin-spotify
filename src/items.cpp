@@ -327,23 +327,13 @@ vector<Action> ShowItem::actions() const
 
 // -------------------------------------------------------------------------------------------------
 
-static QString makeEpisodeDescription(const QJsonObject &json)
-{
-    auto description = localizedTypeString(Episode);
-    if (const auto d = json["description"_L1].toString();
-        !d.isEmpty())
-        description += u" · %1"_s.arg(d);
-
-    auto view = json["show"_L1]["publisher"_L1].toString();
-    return u"%1 · %2"_s.arg(localizedTypeString(Episode), view);
-}
-
 EpisodeItem::EpisodeItem(const spotify::RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
-              json["id"_L1].toString(),
-              json["name"_L1].toString(),
-              makeEpisodeDescription(json),
-              pickImageUrl(json["images"_L1].toArray())) { }
+                json["id"_L1].toString(),
+                json["name"_L1].toString(),
+                json["description"_L1].toString(),
+                pickImageUrl(json["images"_L1].toArray()))
+{}
 
 SearchType EpisodeItem::type() const { return Episode; }
 
@@ -358,7 +348,7 @@ vector<Action> EpisodeItem::actions() const
     }
     else
     {
-        actions.emplace_back(u"show"_s, tr_show_in(), [this]{ openUrl(uri()); });
+        actions.emplace_back(u"show"_s, tr_show_in(), [this] { openUrl(uri()); });
     }
 
     return actions;
