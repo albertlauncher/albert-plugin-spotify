@@ -310,18 +310,18 @@ vector<Action> PlaylistItem::actions() const
 
 ShowItem::ShowItem(const spotify::RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
-              json["id"_L1].toString(),
-              json["name"_L1].toString(),
-              u"%1 · %2"_s.arg(localizedTypeString(Show),
-                               json["publisher"_L1].toString()),
-              pickImageUrl(json["images"_L1].toArray())) { }
+                json["id"_L1].toString(),
+                json["name"_L1].toString(),
+                json["publisher"_L1].toString(),
+                pickImageUrl(json["images"_L1].toArray()))
+{}
 
 SearchType ShowItem::type() const { return Show; }
 
 vector<Action> ShowItem::actions() const
 {
     vector<Action> actions;
-    actions.emplace_back(u"show"_s, tr_show_in(), [this]{ openUrl(uri()); });
+    actions.emplace_back(u"show"_s, tr_show_in(), [this] { openUrl(uri()); });
     return actions;
 }
 
