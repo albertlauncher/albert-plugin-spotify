@@ -44,22 +44,22 @@ public:
 
 
     [[nodiscard]] QNetworkReply *search(const QString &query, SearchType types,
-                                        uint limit = 50, uint offset = 0) const;
+                                        uint limit, uint offset) const;
 
 
-    [[nodiscard]] QNetworkReply *userTopTracks(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userTopTracks(uint limit, uint offset) const;
 
-    [[nodiscard]] QNetworkReply *userTopArtists(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userTopArtists(uint limit, uint offset) const;
 
-    [[nodiscard]] QNetworkReply *userAlbums(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userAlbums(uint limit, uint offset) const;
 
-    [[nodiscard]] QNetworkReply *userPlaylists(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userPlaylists(uint limit, uint offset) const;
 
-    [[nodiscard]] QNetworkReply *userShows(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userShows(uint limit, uint offset) const;
 
-    [[nodiscard]] QNetworkReply *userEpisodes(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userEpisodes(uint limit, uint offset) const;
 
-    [[nodiscard]] QNetworkReply *userAudiobooks(uint limit = 50, uint offset = 0) const;
+    [[nodiscard]] QNetworkReply *userAudiobooks(uint limit, uint offset) const;
 
 
     [[nodiscard]] QNetworkReply *play(const QStringList &uris, const QString& deviceId = {}) const;

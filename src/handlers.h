@@ -1,40 +1,37 @@
 // Copyright (c) 2025-2025 Manuel Schneider
 
 #pragma once
-#include <albert/threadedqueryhandler.h>
+#include "spotify.h"
 #include <albert/networkutil.h>
 #include <albert/ratelimiter.h>
-#include "spotify.h"
+#include <albert/threadedqueryhandler.h>
 class Plugin;
 class QJsonArray;
 class SpotifyItem;
 
-class SpotifySearchHandler : public albert::ThreadedQueryHandler
+class SpotifySearchHandler : public albert::QueryHandler
 {
-protected:
-    SpotifySearchHandler(spotify::RestApi &api,
-                         const QString &id,
+public:
+    SpotifySearchHandler(const spotify::RestApi &api,
+                         spotify::SearchType type,
                          const QString &name,
                          const QString &description);
+
     QString id() const override;
     QString name() const override;
     QString description() const override;
     QString defaultTrigger() const override;
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
 
-    virtual spotify::SearchType type() const = 0;
-    virtual std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const = 0;
+    const spotify::RestApi &api;
+    const spotify::SearchType type;
 
-    void apiCall(albert::ThreadedQuery &q,
-                 std::function<QNetworkReply*()> api_call,
-                 std::function<void(const QJsonDocument&,
-                                    std::vector<std::shared_ptr<albert::Item>>&)> success_handler) const;
+protected:
 
-    spotify::RestApi &api_;
-    albert::detail::RateLimiter limiter_;
-    const QString id_;
     const QString name_;
     const QString description_;
+    albert::detail::RateLimiter rate_limiter_;
+
+    class QueryExecution;
 
 };
 
@@ -42,61 +39,47 @@ class TrackSearchHandler : public SpotifySearchHandler
 {
 public:
     TrackSearchHandler(spotify::RestApi&);
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
-    spotify::SearchType type() const override final;
-    std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
 };
 
 class ArtistSearchHandler : public SpotifySearchHandler
 {
 public:
     ArtistSearchHandler(spotify::RestApi&);
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
-    spotify::SearchType type() const override final;
-    std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
 };
 
 class AlbumSearchHandler : public SpotifySearchHandler
 {
 public:
     AlbumSearchHandler(spotify::RestApi&);
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
-    spotify::SearchType type() const override final;
-    std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
 };
 
 class  PlaylistSearchHandler : public SpotifySearchHandler
 {
 public:
     PlaylistSearchHandler(spotify::RestApi&);
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
-    spotify::SearchType type() const override final;
-    std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
 };
 
 class ShowSearchHandler : public SpotifySearchHandler
 {
 public:
     ShowSearchHandler(spotify::RestApi&);
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
-    spotify::SearchType type() const override final;
-    std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
 };
 
 class EpisodeSearchHandler : public SpotifySearchHandler
 {
 public:
     EpisodeSearchHandler(spotify::RestApi&);
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
-    spotify::SearchType type() const override final;
-    std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
 };
 
 class AudiobookSearchHandler : public SpotifySearchHandler
 {
 public:
     AudiobookSearchHandler(spotify::RestApi&);
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
-    spotify::SearchType type() const override final;
-    std::shared_ptr<SpotifyItem> parseItem(const QJsonObject &) const override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
 };

@@ -6,16 +6,22 @@
 #include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QNetworkReply>
 #include <QThread>
 #include <albert/iconutil.h>
 #include <albert/logging.h>
+#include <albert/queryexecution.h>
+#include <albert/queryresults.h>
 #include <albert/standarditem.h>
+#include <ranges>
 using namespace Qt::StringLiterals;
+using namespace albert::detail;
 using namespace albert;
 using namespace spotify;
 using namespace std;
 
-static const auto items = u"items";
+static const auto items_key = "items"_L1;
+static const auto batch_size = 10u;
 
 static auto makeErrorItem(const QString &error)
 {
@@ -25,292 +31,385 @@ static auto makeErrorItem(const QString &error)
     return StandardItem::make(u"notify"_s, u"Spotify"_s, error, ::move(ico_fac));
 }
 
-SpotifySearchHandler::SpotifySearchHandler(RestApi &api,
-                                           const QString &id,
+SpotifySearchHandler::SpotifySearchHandler(const RestApi &api_,
+                                           SearchType type_,
                                            const QString &name,
-                                           const QString &description):
-    api_(api),
-    limiter_(1000),
-    id_(id),
+                                           const QString &description) :
+    api(api_),
+    type(type_),
     name_(name),
-    description_(description)
+    description_(description),
+    rate_limiter_(1000)
 {}
 
-QString SpotifySearchHandler::id() const { return id_; }
+QString SpotifySearchHandler::id() const { return typeString(type); }
 
 QString SpotifySearchHandler::name() const { return name_; }
 
 QString SpotifySearchHandler::description() const { return description_; }
 
 QString SpotifySearchHandler::defaultTrigger() const
-{ return localizedTypeString(type()).toLower() + QChar::Space; }
+{ return localizedTypeString(type).toLower() + QChar::Space; }
 
-void SpotifySearchHandler::handleThreadedQuery(ThreadedQuery &q)
+
+class SpotifySearchHandler::QueryExecution : public albert::QueryExecution
 {
-    if (q.string().isEmpty())
-        return;
+public:
 
-    else if (!limiter_.acquireBlocking([&q]{ return q.isValid(); }))
-        return;
+    SpotifySearchHandler &handler;
+    unique_ptr<Acquire> acquire;
+    unique_ptr<QNetworkReply> reply;
+    int batch;  // also valid flag
+    bool active;
 
-    else if (const auto var = RestApi::parseJson(await(api_.search(q, type())));
-             holds_alternative<QString>(var))
-        q.add(makeErrorItem(get<QString>(var)));
-
-    else
+    QueryExecution(SpotifySearchHandler &h, Query &q)
+        : albert::QueryExecution(q)
+        , handler(h)
+        , acquire(nullptr)
+        , reply(nullptr)
+        , batch(0)
+        , active(false)
     {
-        vector<shared_ptr<Item>> r;
-        const auto key = u"%1s"_s.arg(typeString(type()));
-        const auto a = get<QJsonDocument>(var)[key][items].toArray();
-        for (const auto &v : a)
-            if (!v.isNull())
+        fetchMore();
+    }
+
+    ~QueryExecution() override {}
+
+    void cancel() override final
+    {
+        acquire.reset();
+        reply.reset();
+        emit activeChanged(active = false);
+        batch = -1;
+    }
+
+    void fetchMore() override final
+    {
+        if (isActive() || !canFetchMore())
+            return;
+
+        emit activeChanged(active = true);
+        acquire = handler.rate_limiter_.acquire();
+        connect(acquire.get(), &Acquire::granted, this, [this]
+        {
+            reply.reset(fetch(batch++));
+            connect(reply.get(), &QNetworkReply::finished, this, [this]
             {
-                auto item = parseItem(v.toObject());
-                item->moveToThread(qApp->thread());
-                r.emplace_back(::move(item));
-            }
-        q.add(::move(r));
+                if (const auto var = RestApi::parseJson(reply.get());
+                    holds_alternative<QJsonDocument>(var))
+                    handleReply(get<QJsonDocument>(var));
+                else
+                {
+                    results.add(handler, makeErrorItem(get<QString>(var)));
+                    batch = -1;
+                }
+                reply.reset();
+                emit activeChanged(active = false);
+            }, Qt::SingleShotConnection);
+        }, Qt::SingleShotConnection);
     }
-}
 
-void SpotifySearchHandler::apiCall(
-    ThreadedQuery &q,
-    function<QNetworkReply*()> api_call,
-    function<void(const QJsonDocument&, vector<shared_ptr<Item>>&)> success_handler) const
-{
-    if (static auto limiter = albert::detail::RateLimiter(1000);
-        !limiter.acquireBlocking([&q]{ return q.isValid(); }))
-        return;
+    bool canFetchMore() const override final { return batch >= 0; }
 
-    else if (const auto var = RestApi::parseJson(await(api_call()));
-             holds_alternative<QString>(var))
-        q.add(makeErrorItem(get<QString>(var)));
+    bool isActive() const override final { return active; }
 
-    else
-    {
-        const auto json = get<QJsonDocument>(var);
-        vector<shared_ptr<Item>> r;
-        success_handler(json, r);
-        q.add(::move(r));
-    }
-}
+    virtual QNetworkReply *fetch(uint page) const = 0;
+
+    virtual void handleReply(const QJsonDocument &) = 0;
+};
 
 //--------------------------------------------------------------------------------------------------
 
 TrackSearchHandler::TrackSearchHandler(RestApi &api) :
     SpotifySearchHandler(api,
-                         typeString(type()),
+                         Track,
                          Plugin::tr("Spotify tracks"),
                          Plugin::tr("Search Spotify tracks"))
 {}
 
-SearchType TrackSearchHandler::type() const { return Track; }
-
-std::shared_ptr<SpotifyItem> TrackSearchHandler::parseItem(const QJsonObject &o) const
-{ return make_shared<TrackItem>(api_, o); }
-
-void TrackSearchHandler::handleThreadedQuery(ThreadedQuery &q)
+unique_ptr<QueryExecution> TrackSearchHandler::execution(Query &q)
 {
-    if (q.string().isEmpty())
-        apiCall(q,
-                [this]{ return api_.userTopTracks(); },
-                [this](const QJsonDocument &doc, vector<shared_ptr<Item>> &r) {
-                    for (const auto &v : doc[items].toArray())
-                    {
-                        auto item = make_shared<TrackItem>(api_, v.toObject());
-                        item->moveToThread(qApp->thread());
-                        r.emplace_back(::move(item));
-                    }
-                });
-    else
-        SpotifySearchHandler::handleThreadedQuery(q);
+    struct Execution : public SpotifySearchHandler::QueryExecution
+    {
+        using QueryExecution::QueryExecution;
+
+        QNetworkReply *fetch(uint batch) const override
+        {
+            return query.string().isEmpty()
+                            ? handler.api.userTopTracks(batch_size, batch * batch_size)
+                            : handler.api.search(query, Track, batch_size, batch * batch_size);
+        }
+
+        void handleReply(const QJsonDocument &doc) override
+        {
+            const auto items = query.string().isEmpty()
+                                   ? doc[items_key]
+                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
+            results.add(handler,
+                        items.toArray()
+                        | views::filter([](const auto &val) { return !val.isNull(); })
+                        | views::transform([this](const auto &val) {
+                            return make_shared<TrackItem>(handler.api, val.toObject());
+                        }));
+        }
+    };
+
+    return make_unique<Execution>(*this, q);
 }
 
 //--------------------------------------------------------------------------------------------------
 
-ArtistSearchHandler::ArtistSearchHandler(spotify::RestApi &api) :
+ArtistSearchHandler::ArtistSearchHandler(RestApi &api) :
     SpotifySearchHandler(api,
-                         typeString(type()),
+                         Artist,
                          Plugin::tr("Spotify artists"),
                          Plugin::tr("Search Spotify artists"))
 {}
 
-SearchType ArtistSearchHandler::type() const { return Artist; }
-
-std::shared_ptr<SpotifyItem> ArtistSearchHandler::parseItem(const QJsonObject &o) const
-{ return make_shared<ArtistItem>(api_, o); }
-
-void ArtistSearchHandler::handleThreadedQuery(ThreadedQuery &q)
+unique_ptr<QueryExecution> ArtistSearchHandler::execution(Query &q)
 {
-    if (q.string().isEmpty())
-        apiCall(q,
-                [this]{ return api_.userTopArtists(); },
-                [this](const QJsonDocument &doc, vector<shared_ptr<Item>> &r) {
-                    for (const auto &v : doc[items].toArray())
-                    {
-                        auto item = make_shared<ArtistItem>(api_, v.toObject());
-                        item->moveToThread(qApp->thread());
-                        r.emplace_back(::move(item));
-                    }
-                });
-    else
-        SpotifySearchHandler::handleThreadedQuery(q);
-}
+    struct Execution : public SpotifySearchHandler::QueryExecution
+    {
+        using QueryExecution::QueryExecution;
 
+        QNetworkReply *fetch(uint batch) const override
+        {
+            return query.string().isEmpty()
+                       ? handler.api.userTopArtists(batch_size, batch * batch_size)
+                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+        }
+
+        void handleReply(const QJsonDocument &doc) override
+        {
+            const auto items = query.string().isEmpty()
+                                   ? doc[items_key]
+                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
+            results.add(handler,
+                        items.toArray()
+                        | views::filter([](const auto &val) { return !val.isNull(); })
+                        | views::transform([this](const auto &val) {
+                            return make_shared<ArtistItem>(handler.api, val.toObject());
+                        }));
+        }
+    };
+
+    return make_unique<Execution>(*this, q);
+}
 
 //--------------------------------------------------------------------------------------------------
 
-AlbumSearchHandler::AlbumSearchHandler(spotify::RestApi &api) :
+AlbumSearchHandler::AlbumSearchHandler(RestApi &api) :
     SpotifySearchHandler(api,
-                         typeString(type()),
+                         Album,
                          Plugin::tr("Spotify albums"),
                          Plugin::tr("Search Spotify albums"))
 {}
 
-SearchType AlbumSearchHandler::type() const { return Album; }
-
-std::shared_ptr<SpotifyItem> AlbumSearchHandler::parseItem(const QJsonObject &o) const
-{ return make_shared<AlbumItem>(api_, o); }
-
-void AlbumSearchHandler::handleThreadedQuery(ThreadedQuery &q)
+unique_ptr<QueryExecution> AlbumSearchHandler::execution(Query &q)
 {
-    if (q.string().isEmpty())
-        apiCall(q,
-                [this]{ return api_.userAlbums(); },
-                [this](const QJsonDocument &doc, vector<shared_ptr<Item>> &r) {
-                    for (const auto &v : doc[items].toArray())
-                    {
-                        auto item = make_shared<AlbumItem>(api_, v[typeString(type())].toObject());
-                        item->moveToThread(qApp->thread());
-                        r.emplace_back(::move(item));
-                    }
-                });
-    else
-        SpotifySearchHandler::handleThreadedQuery(q);
+    struct Execution : public SpotifySearchHandler::QueryExecution
+    {
+        using QueryExecution::QueryExecution;
+
+        QNetworkReply *fetch(uint batch) const override
+        {
+            return query.string().isEmpty()
+                       ? handler.api.userAlbums(batch_size, batch * batch_size)
+                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+        }
+
+        void handleReply(const QJsonDocument &doc) override
+        {
+            if (query.string().isEmpty())
+                results.add(handler,
+                            doc[items_key].toArray()
+                            | views::filter([](const auto &val) { return !val.isNull();})
+                            | views::transform([this](const auto &val) {
+                                const auto album = val[typeString(handler.type)].toObject();
+                                return make_shared<AlbumItem>(handler.api, album);
+                            }));
+            else
+                results.add(handler,
+                            doc[u"%1s"_s.arg(typeString(handler.type))][items_key].toArray()
+                            | views::filter([](const auto &val) { return !val.isNull(); })
+                            | views::transform([this](const auto &val) {
+                                return make_shared<AlbumItem>(handler.api, val.toObject());
+                            }));
+        }
+    };
+
+    return make_unique<Execution>(*this, q);
 }
 
 //--------------------------------------------------------------------------------------------------
 
-PlaylistSearchHandler::PlaylistSearchHandler(spotify::RestApi &api) :
+PlaylistSearchHandler::PlaylistSearchHandler(RestApi &api) :
     SpotifySearchHandler(api,
-                         typeString(type()),
+                         Playlist,
                          Plugin::tr("Spotify playlists"),
                          Plugin::tr("Search Spotify playlists"))
 {}
 
-SearchType PlaylistSearchHandler::type() const { return Playlist; }
-
-std::shared_ptr<SpotifyItem> PlaylistSearchHandler::parseItem(const QJsonObject &o) const
-{ return make_shared<PlaylistItem>(api_, o); }
-
-void PlaylistSearchHandler::handleThreadedQuery(ThreadedQuery &q)
+unique_ptr<QueryExecution> PlaylistSearchHandler::execution(Query &q)
 {
-    if (q.string().isEmpty())
-        apiCall(q,
-                [this]{ return api_.userPlaylists(); },
-                [this](const QJsonDocument &doc, vector<shared_ptr<Item>> &r) {
-                    for (const auto &v : doc[items].toArray())
-                    {
-                        auto item = make_shared<PlaylistItem>(api_, v.toObject());
-                        item->moveToThread(qApp->thread());
-                        r.emplace_back(::move(item));
-                    }
-                });
-    else
-        SpotifySearchHandler::handleThreadedQuery(q);
+    struct Execution : public SpotifySearchHandler::QueryExecution
+    {
+        using QueryExecution::QueryExecution;
+
+        QNetworkReply *fetch(uint batch) const override
+        {
+            return query.string().isEmpty()
+                       ? handler.api.userPlaylists(batch_size, batch * batch_size)
+                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+        }
+
+        void handleReply(const QJsonDocument &doc) override
+        {
+            const auto items = query.string().isEmpty()
+                                   ? doc[items_key]
+                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
+
+            results.add(handler,
+                        items.toArray()
+                        | views::filter([](const auto &val) { return !val.isNull(); })
+                        | views::transform([this](const auto &val) {
+                            return make_shared<PlaylistItem>(handler.api, val.toObject());
+                        }));
+        }
+    };
+
+    return make_unique<Execution>(*this, q);
 }
 
 //--------------------------------------------------------------------------------------------------
 
-ShowSearchHandler::ShowSearchHandler(spotify::RestApi &api) :
+ShowSearchHandler::ShowSearchHandler(RestApi &api) :
     SpotifySearchHandler(api,
-                         typeString(type()),
+                         Show,
                          Plugin::tr("Spotify shows"),
                          Plugin::tr("Search Spotify shows"))
 {}
 
-SearchType ShowSearchHandler::type() const { return Show; }
-
-std::shared_ptr<SpotifyItem> ShowSearchHandler::parseItem(const QJsonObject &o) const
-{ return make_shared<ShowItem>(api_, o); }
-
-void ShowSearchHandler::handleThreadedQuery(ThreadedQuery &q)
+unique_ptr<QueryExecution> ShowSearchHandler::execution(Query &q)
 {
-    if (q.string().isEmpty())
-        apiCall(q,
-                [this]{ return api_.userShows(); },
-                [this](const QJsonDocument &doc, vector<shared_ptr<Item>> &r) {
-                    for (const auto &v : doc[items].toArray())
-                    {
-                        auto item = make_shared<ShowItem>(api_, v[typeString(type())].toObject());
-                        item->moveToThread(qApp->thread());
-                        r.emplace_back(::move(item));
-                    }
-                });
-    else
-        SpotifySearchHandler::handleThreadedQuery(q);
+    struct Execution : public SpotifySearchHandler::QueryExecution
+    {
+        using QueryExecution::QueryExecution;
+
+        QNetworkReply *fetch(uint batch) const override
+        {
+            return query.string().isEmpty()
+                       ? handler.api.userShows(batch_size, batch * batch_size)
+                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+        }
+
+        void handleReply(const QJsonDocument &doc) override
+        {
+            if (query.string().isEmpty())
+                results.add(handler,
+                            doc[items_key].toArray()
+                            | views::filter([](const auto &val) { return !val.isNull(); })
+                            | views::transform([this](const auto &val) {
+                                const auto album = val[typeString(handler.type)].toObject();
+                                return make_shared<ShowItem>(handler.api, album);
+                            }));
+            else
+                results.add(handler,
+                            doc[u"%1s"_s.arg(typeString(handler.type))][items_key].toArray()
+                            | views::filter([](const auto &val) { return !val.isNull(); })
+                            | views::transform([this](const auto &val) {
+                                return make_shared<ShowItem>(handler.api, val.toObject());
+                            }));
+        }
+    };
+
+    return make_unique<Execution>(*this, q);
 }
 
 //--------------------------------------------------------------------------------------------------
 
-EpisodeSearchHandler::EpisodeSearchHandler(spotify::RestApi &api) :
+EpisodeSearchHandler::EpisodeSearchHandler(RestApi &api) :
     SpotifySearchHandler(api,
-                         typeString(type()),
+                         Episode,
                          Plugin::tr("Spotify episodes"),
                          Plugin::tr("Search Spotify episodes"))
 {}
 
-SearchType EpisodeSearchHandler::type() const { return Episode; }
-
-std::shared_ptr<SpotifyItem> EpisodeSearchHandler::parseItem(const QJsonObject &o) const
-{ return make_shared<EpisodeItem>(api_, o); }
-
-void EpisodeSearchHandler::handleThreadedQuery(ThreadedQuery &q)
+unique_ptr<QueryExecution> EpisodeSearchHandler::execution(Query &q)
 {
-    if (q.string().isEmpty())
-        apiCall(q,
-                [this]{ return api_.userEpisodes(); },
-                [this](const QJsonDocument &doc, vector<shared_ptr<Item>> &r) {
-                    for (const auto &v : doc[items].toArray())
-                        if (const auto &o = v[typeString(type())];
-                            !o["id"_L1].isNull())
-                        {
-                            auto item = make_shared<EpisodeItem>(api_, v[typeString(type())].toObject());
-                            item->moveToThread(qApp->thread());
-                            r.emplace_back(::move(item));
-                        }
-                });
-    else
-        SpotifySearchHandler::handleThreadedQuery(q);
+    struct Execution : public SpotifySearchHandler::QueryExecution
+    {
+        using QueryExecution::QueryExecution;
+
+        QNetworkReply *fetch(uint batch) const override
+        {
+            return query.string().isEmpty()
+                       ? handler.api.userEpisodes(batch_size, batch * batch_size)
+                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+        }
+
+        void handleReply(const QJsonDocument &doc) override
+        {
+            if (query.string().isEmpty())
+                // endpoint beta and buggy af random null and non null but null filled items
+                results.add(handler,
+                            doc[items_key].toArray()
+                            | views::filter([](const auto &val) { return !val.isNull(); })
+                            | views::transform([this](const auto &val) {
+                                  return val[typeString(handler.type)];
+                            })
+                            | views::filter([](const auto &val) { return !val["id"_L1].isNull(); })
+                            | views::transform([this](const auto &val) {
+                                return make_shared<EpisodeItem>(handler.api, val.toObject());
+                            }));
+            else
+                results.add(handler,
+                            doc[u"%1s"_s.arg(typeString(handler.type))][items_key].toArray()
+                            | views::filter([](const auto &val) { return !val.isNull(); })
+                            | views::transform([this](const auto &val) {
+                                return make_shared<EpisodeItem>(handler.api, val.toObject());
+                            }));
+        }
+    };
+
+    return make_unique<Execution>(*this, q);
 }
 
 //--------------------------------------------------------------------------------------------------
 
-AudiobookSearchHandler::AudiobookSearchHandler(spotify::RestApi &api) :
+AudiobookSearchHandler::AudiobookSearchHandler(RestApi &api) :
     SpotifySearchHandler(api,
-                         typeString(type()),
+                         Audiobook,
                          Plugin::tr("Spotify audiobooks"),
                          Plugin::tr("Search Spotify audiobooks"))
 {}
 
-SearchType AudiobookSearchHandler::type() const { return Audiobook; }
-
-std::shared_ptr<SpotifyItem> AudiobookSearchHandler::parseItem(const QJsonObject &o) const
-{ return make_shared<AudiobookItem>(api_, o); }
-
-void AudiobookSearchHandler::handleThreadedQuery(ThreadedQuery &q)
+unique_ptr<QueryExecution> AudiobookSearchHandler::execution(Query &q)
 {
-    if (q.string().isEmpty())
-        apiCall(q,
-                [this]{ return api_.userAudiobooks(); },
-                [this](const QJsonDocument &doc, vector<shared_ptr<Item>> &r) {
-                    for (const auto &v : doc[items].toArray())
-                    {
-                        auto item = make_shared<AudiobookItem>(api_, v.toObject());
-                        item->moveToThread(qApp->thread());
-                        r.emplace_back(::move(item));
-                    }
-                });
-    else
-        SpotifySearchHandler::handleThreadedQuery(q);
+    struct Execution : public SpotifySearchHandler::QueryExecution
+    {
+        using QueryExecution::QueryExecution;
+
+        QNetworkReply *fetch(uint batch) const override
+        {
+            return query.string().isEmpty()
+                       ? handler.api.userAudiobooks(batch_size, batch * batch_size)
+                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+        }
+
+        void handleReply(const QJsonDocument &doc) override
+        {
+            const auto items = query.string().isEmpty()
+                                   ? doc[items_key]
+                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
+            results.add(handler,
+                        items.toArray()
+                        | views::filter([](const auto &val) { return !val.isNull(); })
+                        | views::transform([this](const auto &val) {
+                            return make_shared<AudiobookItem>(handler.api, val.toObject());
+                        }));
+        }
+    };
+
+    return make_unique<Execution>(*this, q);
 }

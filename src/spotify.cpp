@@ -111,7 +111,6 @@ bool RestApi::isPremium() const { return is_premium_; }
 
 variant<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
 {
-    reply->deleteLater();
     const QByteArray data = reply->readAll();
     QJsonParseError parseError;
     const QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
