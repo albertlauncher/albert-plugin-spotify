@@ -52,28 +52,6 @@ Plugin::Plugin() :
     episode_search_handler(api),
     audiobook_search_handler(api)
 {
-    // Read tokens
-    readKeychain(kck_secrets,
-                 [this](const QString &value){
-                     if (auto secrets = value.split(QChar::Tabulation);
-                         secrets.size() == 4)
-                     {
-                         api.oauth.setClientId(secrets[0]);
-                         api.oauth.setClientSecret(secrets[1]);
-                         api.oauth.setTokens(
-                             secrets[2],
-                             secrets[3],
-                             state()->value(sk_token_expiration).toDateTime()
-                             );
-                         DEBG << "Successfully read Spotify OAuth credentials to keychain.";
-                     }
-                     else
-                         WARN << "Unexpected format of the Spotify OAuth credentials read from keychain.";
-                 },
-                 [](const QString & error){
-                     WARN << "Failed to read Spotify OAuth credentials to keychain:" << error;
-                 });
-
 
     const auto writeAuthConfig = [this]{
         state()->setValue(sk_token_expiration, api.oauth.tokenExpiration());
@@ -92,9 +70,35 @@ Plugin::Plugin() :
                       });
     };
 
-    connect(&api.oauth, &OAuth2::clientIdChanged, this, writeAuthConfig);
-    connect(&api.oauth, &OAuth2::clientSecretChanged, this, writeAuthConfig);
-    connect(&api.oauth, &OAuth2::tokensChanged, this, writeAuthConfig);
+    const auto connect_oauth_signals = [this, writeAuthConfig]{
+        connect(&api.oauth, &OAuth2::clientIdChanged, this, writeAuthConfig);
+        connect(&api.oauth, &OAuth2::clientSecretChanged, this, writeAuthConfig);
+        connect(&api.oauth, &OAuth2::tokensChanged, this, writeAuthConfig);
+    };
+
+    // Read tokens
+    readKeychain(kck_secrets,
+                 [this, connect_oauth_signals](const QString &value){
+                     if (auto secrets = value.split(QChar::Tabulation);
+                         secrets.size() == 4)
+                     {
+                         api.oauth.setClientId(secrets[0]);
+                         api.oauth.setClientSecret(secrets[1]);
+                         api.oauth.setTokens(
+                             secrets[2],
+                             secrets[3],
+                             state()->value(sk_token_expiration).toDateTime()
+                             );
+                         DEBG << "Successfully read Spotify OAuth credentials from keychain.";
+                     }
+                     else
+                         WARN << "Unexpected format of the Spotify OAuth credentials read from keychain.";
+                     connect_oauth_signals();
+                 },
+                 [connect_oauth_signals](const QString & error){
+                     WARN << "Failed to read Spotify OAuth credentials to keychain:" << error;
+                     connect_oauth_signals();
+                 });
 }
 
 Plugin::~Plugin() = default;
