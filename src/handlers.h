@@ -3,8 +3,8 @@
 #pragma once
 #include "api.h"
 #include <albert/networkutil.h>
+#include <albert/rankedqueryhandler.h>
 #include <albert/ratelimiter.h>
-#include <albert/threadedqueryhandler.h>
 class Plugin;
 class QJsonArray;
 class SpotifyItem;
@@ -39,47 +39,47 @@ class TrackSearchHandler : public SpotifySearchHandler
 {
 public:
     TrackSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
 };
 
 class ArtistSearchHandler : public SpotifySearchHandler
 {
 public:
     ArtistSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
 };
 
 class AlbumSearchHandler : public SpotifySearchHandler
 {
 public:
     AlbumSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
 };
 
 class  PlaylistSearchHandler : public SpotifySearchHandler
 {
 public:
     PlaylistSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
 };
 
 class ShowSearchHandler : public SpotifySearchHandler
 {
 public:
     ShowSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
 };
 
 class EpisodeSearchHandler : public SpotifySearchHandler
 {
 public:
     EpisodeSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
 };
 
 class AudiobookSearchHandler : public SpotifySearchHandler
 {
 public:
     AudiobookSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::Query &query) override;
+    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
 };

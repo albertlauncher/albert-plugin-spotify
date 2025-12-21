@@ -61,8 +61,8 @@ public:
     int batch;  // also valid flag
     bool active;
 
-    QueryExecution(SpotifySearchHandler &h, Query &q)
-        : albert::QueryExecution(q)
+    QueryExecution(SpotifySearchHandler &h, QueryContext &c)
+        : albert::QueryExecution(c)
         , handler(h)
         , acquire(nullptr)
         , reply(nullptr)
@@ -126,7 +126,7 @@ TrackSearchHandler::TrackSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify tracks"))
 {}
 
-unique_ptr<QueryExecution> TrackSearchHandler::execution(Query &q)
+unique_ptr<QueryExecution> TrackSearchHandler::execution(QueryContext &context)
 {
     struct Execution : public SpotifySearchHandler::QueryExecution
     {
@@ -134,14 +134,14 @@ unique_ptr<QueryExecution> TrackSearchHandler::execution(Query &q)
 
         QNetworkReply *fetch(uint batch) const override
         {
-            return query.string().isEmpty()
+            return context.query().isEmpty()
                             ? handler.api.userTopTracks(batch_size, batch * batch_size)
-                            : handler.api.search(query, Track, batch_size, batch * batch_size);
+                            : handler.api.search(context, Track, batch_size, batch * batch_size);
         }
 
         void handleReply(const QJsonDocument &doc) override
         {
-            const auto items = query.string().isEmpty()
+            const auto items = context.query().isEmpty()
                                    ? doc[items_key]
                                    : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
             results.add(handler,
@@ -153,7 +153,7 @@ unique_ptr<QueryExecution> TrackSearchHandler::execution(Query &q)
         }
     };
 
-    return make_unique<Execution>(*this, q);
+    return make_unique<Execution>(*this, context);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ ArtistSearchHandler::ArtistSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify artists"))
 {}
 
-unique_ptr<QueryExecution> ArtistSearchHandler::execution(Query &q)
+unique_ptr<QueryExecution> ArtistSearchHandler::execution(QueryContext &context)
 {
     struct Execution : public SpotifySearchHandler::QueryExecution
     {
@@ -173,14 +173,14 @@ unique_ptr<QueryExecution> ArtistSearchHandler::execution(Query &q)
 
         QNetworkReply *fetch(uint batch) const override
         {
-            return query.string().isEmpty()
+            return context.query().isEmpty()
                        ? handler.api.userTopArtists(batch_size, batch * batch_size)
-                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
         }
 
         void handleReply(const QJsonDocument &doc) override
         {
-            const auto items = query.string().isEmpty()
+            const auto items = context.query().isEmpty()
                                    ? doc[items_key]
                                    : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
             results.add(handler,
@@ -192,7 +192,7 @@ unique_ptr<QueryExecution> ArtistSearchHandler::execution(Query &q)
         }
     };
 
-    return make_unique<Execution>(*this, q);
+    return make_unique<Execution>(*this, context);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ AlbumSearchHandler::AlbumSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify albums"))
 {}
 
-unique_ptr<QueryExecution> AlbumSearchHandler::execution(Query &q)
+unique_ptr<QueryExecution> AlbumSearchHandler::execution(QueryContext &context)
 {
     struct Execution : public SpotifySearchHandler::QueryExecution
     {
@@ -212,14 +212,14 @@ unique_ptr<QueryExecution> AlbumSearchHandler::execution(Query &q)
 
         QNetworkReply *fetch(uint batch) const override
         {
-            return query.string().isEmpty()
+            return context.query().isEmpty()
                        ? handler.api.userAlbums(batch_size, batch * batch_size)
-                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
         }
 
         void handleReply(const QJsonDocument &doc) override
         {
-            if (query.string().isEmpty())
+            if (context.query().isEmpty())
                 results.add(handler,
                             doc[items_key].toArray()
                             | views::filter([](const auto &val) { return !val.isNull();})
@@ -237,7 +237,7 @@ unique_ptr<QueryExecution> AlbumSearchHandler::execution(Query &q)
         }
     };
 
-    return make_unique<Execution>(*this, q);
+    return make_unique<Execution>(*this, context);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -249,7 +249,7 @@ PlaylistSearchHandler::PlaylistSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify playlists"))
 {}
 
-unique_ptr<QueryExecution> PlaylistSearchHandler::execution(Query &q)
+unique_ptr<QueryExecution> PlaylistSearchHandler::execution(QueryContext &context)
 {
     struct Execution : public SpotifySearchHandler::QueryExecution
     {
@@ -257,14 +257,14 @@ unique_ptr<QueryExecution> PlaylistSearchHandler::execution(Query &q)
 
         QNetworkReply *fetch(uint batch) const override
         {
-            return query.string().isEmpty()
+            return context.query().isEmpty()
                        ? handler.api.userPlaylists(batch_size, batch * batch_size)
-                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
         }
 
         void handleReply(const QJsonDocument &doc) override
         {
-            const auto items = query.string().isEmpty()
+            const auto items = context.query().isEmpty()
                                    ? doc[items_key]
                                    : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
 
@@ -277,7 +277,7 @@ unique_ptr<QueryExecution> PlaylistSearchHandler::execution(Query &q)
         }
     };
 
-    return make_unique<Execution>(*this, q);
+    return make_unique<Execution>(*this, context);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -289,7 +289,7 @@ ShowSearchHandler::ShowSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify shows"))
 {}
 
-unique_ptr<QueryExecution> ShowSearchHandler::execution(Query &q)
+unique_ptr<QueryExecution> ShowSearchHandler::execution(QueryContext &context)
 {
     struct Execution : public SpotifySearchHandler::QueryExecution
     {
@@ -297,14 +297,14 @@ unique_ptr<QueryExecution> ShowSearchHandler::execution(Query &q)
 
         QNetworkReply *fetch(uint batch) const override
         {
-            return query.string().isEmpty()
+            return context.query().isEmpty()
                        ? handler.api.userShows(batch_size, batch * batch_size)
-                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
         }
 
         void handleReply(const QJsonDocument &doc) override
         {
-            if (query.string().isEmpty())
+            if (context.query().isEmpty())
                 results.add(handler,
                             doc[items_key].toArray()
                             | views::filter([](const auto &val) { return !val.isNull(); })
@@ -322,7 +322,7 @@ unique_ptr<QueryExecution> ShowSearchHandler::execution(Query &q)
         }
     };
 
-    return make_unique<Execution>(*this, q);
+    return make_unique<Execution>(*this, context);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -334,7 +334,7 @@ EpisodeSearchHandler::EpisodeSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify episodes"))
 {}
 
-unique_ptr<QueryExecution> EpisodeSearchHandler::execution(Query &q)
+unique_ptr<QueryExecution> EpisodeSearchHandler::execution(QueryContext &context)
 {
     struct Execution : public SpotifySearchHandler::QueryExecution
     {
@@ -342,14 +342,14 @@ unique_ptr<QueryExecution> EpisodeSearchHandler::execution(Query &q)
 
         QNetworkReply *fetch(uint batch) const override
         {
-            return query.string().isEmpty()
+            return context.query().isEmpty()
                        ? handler.api.userEpisodes(batch_size, batch * batch_size)
-                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
         }
 
         void handleReply(const QJsonDocument &doc) override
         {
-            if (query.string().isEmpty())
+            if (context.query().isEmpty())
                 // endpoint beta and buggy af random null and non null but null filled items
                 results.add(handler,
                             doc[items_key].toArray()
@@ -371,7 +371,7 @@ unique_ptr<QueryExecution> EpisodeSearchHandler::execution(Query &q)
         }
     };
 
-    return make_unique<Execution>(*this, q);
+    return make_unique<Execution>(*this, context);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -383,7 +383,7 @@ AudiobookSearchHandler::AudiobookSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify audiobooks"))
 {}
 
-unique_ptr<QueryExecution> AudiobookSearchHandler::execution(Query &q)
+unique_ptr<QueryExecution> AudiobookSearchHandler::execution(QueryContext &context)
 {
     struct Execution : public SpotifySearchHandler::QueryExecution
     {
@@ -391,14 +391,14 @@ unique_ptr<QueryExecution> AudiobookSearchHandler::execution(Query &q)
 
         QNetworkReply *fetch(uint batch) const override
         {
-            return query.string().isEmpty()
+            return context.query().isEmpty()
                        ? handler.api.userAudiobooks(batch_size, batch * batch_size)
-                       : handler.api.search(query, handler.type, batch_size, batch * batch_size);
+                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
         }
 
         void handleReply(const QJsonDocument &doc) override
         {
-            const auto items = query.string().isEmpty()
+            const auto items = context.query().isEmpty()
                                    ? doc[items_key]
                                    : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
             results.add(handler,
@@ -410,5 +410,5 @@ unique_ptr<QueryExecution> AudiobookSearchHandler::execution(Query &q)
         }
     };
 
-    return make_unique<Execution>(*this, q);
+    return make_unique<Execution>(*this, context);
 }
