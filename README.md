@@ -49,3 +49,4 @@ This plugin is work in progress. Currently the items support these actions:
 
 - Uses the [Spotfiy Web API](https://developer.spotify.com/documentation/web-api).
 - See `api.h` for the endpoints used.
+- Uses [QtKeychain](https://github.com/frankosterfeld/qtkeychain) to store secrets.

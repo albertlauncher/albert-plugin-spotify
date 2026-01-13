@@ -5,6 +5,7 @@
 #include <albert/app.h>
 #include <albert/logging.h>
 #include <albert/oauthconfigwidget.h>
+#include <qt6keychain/keychain.h>
 ALBERT_LOGGING_CATEGORY("spotify")
 using namespace Qt::StringLiterals;
 using namespace albert;
@@ -12,7 +13,8 @@ using namespace std;
 
 namespace
 {
-static const auto kck_secrets         = u"secrets"_s;
+static const auto keychain_service = u"albert.spotify"_s;
+static const auto keychain_key = u"secrets"_s;
 static const auto sk_token_expiration = u"token_expiration"_s;
 }
 
@@ -51,57 +53,66 @@ Plugin::Plugin() :
     show_search_handler(api),
     episode_search_handler(api),
     audiobook_search_handler(api)
-{
-
-    const auto writeAuthConfig = [this]{
-        state()->setValue(sk_token_expiration, api.oauth.tokenExpiration());
-        writeKeychain(kck_secrets,
-                      QStringList{
-                          api.oauth.clientId(),
-                          api.oauth.clientSecret(),
-                          api.oauth.accessToken(),
-                          api.oauth.refreshToken()
-                      }.join(QChar::Tabulation),
-                      [] {
-                          DEBG << "Successfully wrote Spotify OAuth credentials to keychain.";
-                      },
-                      [](const QString &error){
-                          WARN << "Failed to write Spotify OAuth credentials to keychain:" << error;
-                      });
-    };
-
-    const auto connect_oauth_signals = [this, writeAuthConfig]{
-        connect(&api.oauth, &OAuth2::clientIdChanged, this, writeAuthConfig);
-        connect(&api.oauth, &OAuth2::clientSecretChanged, this, writeAuthConfig);
-        connect(&api.oauth, &OAuth2::tokensChanged, this, writeAuthConfig);
-    };
-
-    // Read tokens
-    readKeychain(kck_secrets,
-                 [this, connect_oauth_signals](const QString &value){
-                     if (auto secrets = value.split(QChar::Tabulation);
-                         secrets.size() == 4)
-                     {
-                         api.oauth.setClientId(secrets[0]);
-                         api.oauth.setClientSecret(secrets[1]);
-                         api.oauth.setTokens(
-                             secrets[2],
-                             secrets[3],
-                             state()->value(sk_token_expiration).toDateTime()
-                             );
-                         DEBG << "Successfully read Spotify OAuth credentials from keychain.";
-                     }
-                     else
-                         WARN << "Unexpected format of the Spotify OAuth credentials read from keychain.";
-                     connect_oauth_signals();
-                 },
-                 [connect_oauth_signals](const QString & error){
-                     WARN << "Failed to read Spotify OAuth credentials to keychain:" << error;
-                     connect_oauth_signals();
-                 });
-}
+{}
 
 Plugin::~Plugin() = default;
+
+void Plugin::initialize()
+{
+    auto *job = new QKeychain::ReadPasswordJob(keychain_service, this);  // Deletes itself
+    job->setKey(keychain_key);
+
+    connect(job, &QKeychain::ReadPasswordJob::finished, this, [this, job] {
+        if (job->error())
+            WARN << "Failed to read secrets from keychain:" << job->errorString();
+        else if (auto secrets = job->textData().split(QChar::Tabulation);
+                 secrets.size() != 4)
+            WARN << "Unexpected format of the secrets read from keychain.";
+        else
+        {
+            api.oauth.setClientId(secrets[0]);
+            api.oauth.setClientSecret(secrets[1]);
+            api.oauth.setTokens(
+                secrets[2],
+                secrets[3],
+                state()->value(sk_token_expiration).toDateTime()
+                );
+
+            DEBG << "Successfully read secrets from keychain.";
+        }
+
+        connect(&api.oauth, &OAuth2::clientIdChanged,     this, &Plugin::writeSecrets);
+        connect(&api.oauth, &OAuth2::clientSecretChanged, this, &Plugin::writeSecrets);
+        connect(&api.oauth, &OAuth2::tokensChanged,       this, &Plugin::writeSecrets);
+
+        emit initialized();
+    });
+
+    job->start();
+}
+
+void Plugin::writeSecrets()
+{
+    state()->setValue(sk_token_expiration, api.oauth.tokenExpiration());
+
+    QStringList secrets = {api.oauth.clientId(),
+                           api.oauth.clientSecret(),
+                           api.oauth.accessToken(),
+                           api.oauth.refreshToken()};
+
+    auto job = new QKeychain::WritePasswordJob(keychain_service, this);  // Deletes itself
+    job->setKey(keychain_key);
+    job->setTextData(secrets.join(QChar::Tabulation));
+
+    connect(job, &QKeychain::Job::finished, this, [=] {
+        if (job->error())
+            WARN << "Failed to write secrets to keychain:" << job->errorString();
+        else
+            DEBG << "Successfully wrote secrets to keychain.";
+    });
+
+    job->start();
+}
 
 QWidget *Plugin::buildConfigWidget()
 {

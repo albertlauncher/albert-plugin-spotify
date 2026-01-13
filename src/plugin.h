@@ -16,12 +16,15 @@ public:
 
     Plugin();
     ~Plugin() override;
+    void initialize() override;
 
     QWidget* buildConfigWidget() override;
     std::vector<albert::Extension*> extensions() override;
     void handle(const QUrl &) override;
 
 private:
+
+    void writeSecrets();
 
     RestApi api;
 
