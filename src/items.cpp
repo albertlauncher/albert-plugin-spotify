@@ -8,7 +8,7 @@
 #include <QNetworkReply>
 #include <albert/app.h>
 #include <albert/download.h>
-#include <albert/iconutil.h>
+#include <albert/icon.h>
 #include <albert/logging.h>
 #include <albert/networkutil.h>
 #include <albert/systemutil.h>
@@ -69,7 +69,7 @@ std::unique_ptr<Icon> SpotifyItem::icon() const
 
         if (const auto icon_path = QDir(icons_location).filePath(id() + u".jpeg"_s);
             QFile::exists(icon_path))
-            icon_ = makeIconifiedIcon(makeImageIcon(icon_path), iconifiedIconDefaultColor(), .4);
+            icon_ = Icon::iconified(Icon::image(icon_path), Icon::iconifiedDefaultBackgroundBrush(), .4);
 
         else if (!download_)
         {
@@ -78,11 +78,13 @@ std::unique_ptr<Icon> SpotifyItem::icon() const
             connect(download_.get(), &Download::finished, this, [=, this]{
                 if (const auto error = download_->error();
                     error.isNull())
-                    icon_ = makeIconifiedIcon(makeImageIcon(download_->path()), iconifiedIconDefaultColor(), .4);
+                    icon_ = Icon::iconified(Icon::image(download_->path()),
+                                            Icon::iconifiedDefaultBackgroundBrush(),
+                                            .4);
                 else
                 {
                     WARN << "Failed to download icon:" << error;
-                    icon_ = makeThemeIcon(u"spotify"_s);
+                    icon_ = Icon::theme(u"spotify"_s);
                 }
 
                 dataChanged();

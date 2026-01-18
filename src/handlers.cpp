@@ -8,7 +8,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QThread>
-#include <albert/iconutil.h>
+#include <albert/icon.h>
 #include <albert/logging.h>
 #include <albert/queryexecution.h>
 #include <albert/queryresults.h>
@@ -25,8 +25,9 @@ static const auto batch_size = 10u;
 static auto makeErrorItem(const QString &error)
 {
     WARN << error;
-    auto ico_fac = [] { return makeComposedIcon(makeThemeIcon(u"spotify"_s),
-                                                makeStandardIcon(MessageBoxWarning));};
+    auto ico_fac = [] {
+        return Icon::composed(Icon::theme(u"spotify"_s), Icon::standard(Icon::MessageBoxWarning));
+    };
     return StandardItem::make(u"notify"_s, u"Spotify"_s, error, ::move(ico_fac));
 }
 
