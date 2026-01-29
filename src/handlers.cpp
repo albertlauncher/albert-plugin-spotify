@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QThread>
+#include <albert/app.h>
 #include <albert/icon.h>
 #include <albert/logging.h>
 #include <albert/queryexecution.h>
@@ -28,7 +29,12 @@ static auto makeErrorItem(const QString &error)
     auto ico_fac = [] {
         return Icon::composed(Icon::theme(u"spotify"_s), Icon::standard(Icon::MessageBoxWarning));
     };
-    return StandardItem::make(u"notify"_s, u"Spotify"_s, error, ::move(ico_fac));
+    return StandardItem::make(u"notify"_s,
+                              u"Spotify"_s,
+                              error,
+                              ::move(ico_fac),
+                              {{u"settings"_s, Plugin::tr("Open settings"),
+                                [] { App::instance().showSettings(u"spotify"_s); }}});
 }
 
 SpotifySearchHandler::SpotifySearchHandler(const RestApi &api_,
