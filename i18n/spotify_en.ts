@@ -4,6 +4,10 @@
 <context>
     <name>Plugin</name>
     <message>
+        <source>Open settings</source>
+        <translation></translation>
+    </message>
+    <message>
         <source>Spotify tracks</source>
         <translation></translation>
     </message>
@@ -64,19 +68,19 @@
     <name>SpotifyItem</name>
     <message>
         <source>Show in Spotify</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>Play in Spotify</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>Play on Spotify</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>Add to queue</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
 </context>
 <context>

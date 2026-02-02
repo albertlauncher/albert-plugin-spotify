@@ -39,6 +39,10 @@
         <translation type="vanished">Geben Sie eine Suchanfrage ein</translation>
     </message>
     <message>
+        <source>Open settings</source>
+        <translation>Einstellungen öffnen</translation>
+    </message>
+    <message>
         <source>Spotify albums</source>
         <translation>Spotify Alben</translation>
     </message>
@@ -95,19 +99,19 @@
     <name>SpotifyItem</name>
     <message>
         <source>Show in Spotify</source>
-        <translation type="unfinished">In Spotify anzeigen</translation>
+        <translation>In Spotify anzeigen</translation>
     </message>
     <message>
         <source>Play in Spotify</source>
-        <translation type="unfinished">In Spotify abspielen</translation>
+        <translation>In Spotify abspielen</translation>
     </message>
     <message>
         <source>Play on Spotify</source>
-        <translation type="unfinished">Auf Spotify abspielen</translation>
+        <translation>Auf Spotify abspielen</translation>
     </message>
     <message>
         <source>Add to queue</source>
-        <translation type="unfinished">Zur Warteschlange hinzufügen</translation>
+        <translation>Zur Warteschlange hinzufügen</translation>
     </message>
 </context>
 <context>
