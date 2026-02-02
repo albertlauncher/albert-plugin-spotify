@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(spotify VERSION 0.3.0)
+project(spotify VERSION 0.4.0)
 
 find_package(Albert REQUIRED)
 find_package(Qt6Keychain REQUIRED)
