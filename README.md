@@ -1,5 +1,8 @@
 # Albert plugin: Spotify
 
+> [!WARNING]
+> Starting Wednesday, 11 February, all newly created Development Mode Client IDs will be created under the [updated Development Mode rules](https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security) and therefore will require a Spotify Premium account to work with this plugin.
+
 ## Features
 
 Provides triggered query handlers for Spotify searches. 
