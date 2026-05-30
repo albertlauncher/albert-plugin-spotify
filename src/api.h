@@ -1,9 +1,10 @@
-// Copyright (c) 2025-2025 Manuel Schneider
+// Copyright (c) 2025-2026 Manuel Schneider
 
 #pragma once
 #include <QJsonDocument>
 #include <QString>
 #include <albert/oauth.h>
+#include <expected>
 class QNetworkReply;
 class QNetworkRequest;
 class QUrlQuery;
@@ -28,7 +29,7 @@ public:
 
     RestApi();
 
-    static std::variant<QJsonDocument, QString> parseJson(QNetworkReply *reply);
+    static std::expected<QJsonDocument, QString> parseJson(QNetworkReply *reply);
 
     [[nodiscard]] const QString username() const;
 

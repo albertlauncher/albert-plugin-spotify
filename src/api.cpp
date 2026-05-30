@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2025 Manuel Schneider
+// Copyright (c) 2025-2026 Manuel Schneider
 
 #include "api.h"
 #include <QCoreApplication>
@@ -79,16 +79,11 @@ void RestApi::updateAccountInformatoin()
 
     QObject::connect(reply, &QNetworkReply::finished, &oauth, [this, reply]  // use oauth as context to avoid having inherit qobject
     {
-        auto var = RestApi::parseJson(reply);
-        if (holds_alternative<QString>(var))
-        {
-            const auto error = get<QString>(var);
-            WARN << "Failed fetching user profile:" << error;
-            return;
-        }
+        if (auto exp_doc = RestApi::parseJson(reply); !exp_doc)
+            WARN << "Failed fetching user profile:" << exp_doc.error();
         else
         {
-            const auto profile = get<QJsonDocument>(var);
+            const auto &profile = *exp_doc;
 
             username_ = profile["display_name"_L1].toString();
             if (username_.isEmpty())
@@ -108,7 +103,7 @@ bool RestApi::isPremium() const { return is_premium_; }
 
 // -------------------------------------------------------------------------------------------------
 
-variant<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
+expected<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
 {
     const QByteArray data = reply->readAll();
     QJsonParseError parseError;
@@ -117,25 +112,24 @@ variant<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
     if (reply->error() == QNetworkReply::NoError) {
         if (parseError.error == QJsonParseError::NoError)
             return doc;
-        return u"JSON parse error: "_s + parseError.errorString();
+        return unexpected(u"JSON parse error: "_s + parseError.errorString());
     }
 
     if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
         const QJsonObject obj = doc.object();
         if (obj.contains("error"_L1)) {
-            const QJsonValue errVal = obj["error"_L1];
-            if (errVal.isObject()) {
-                const QJsonObject errObj = errVal.toObject();
+            const QJsonValue err_val = obj["error"_L1];
+            if (err_val.isObject()) {
+                const QJsonObject errObj = err_val.toObject();
                 QString message = errObj.value("message"_L1).toString();
                 int status = errObj.value("status"_L1).toInt();
-                return u"Spotify API error %1: %2"_s.arg(status).arg(message);
-            } else if (errVal.isString()) {
-                return errVal.toString();
-            }
+                return unexpected(u"Spotify API error %1: %2"_s.arg(status).arg(message));
+            } else if (err_val.isString())
+                return unexpected(err_val.toString());
         }
     }
 
-    return u"%1: %2"_s.arg(reply->errorString(), QString::fromUtf8(data));
+    return unexpected(u"%1: %2"_s.arg(reply->errorString(), QString::fromUtf8(data)));
 }
 
 QNetworkRequest RestApi::request(const QString &path, const QUrlQuery &query) const

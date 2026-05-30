@@ -101,12 +101,11 @@ public:
             reply.reset(fetch(batch++));
             connect(reply.get(), &QNetworkReply::finished, this, [this]
             {
-                if (const auto var = RestApi::parseJson(reply.get());
-                    holds_alternative<QJsonDocument>(var))
-                    handleReply(get<QJsonDocument>(var));
+                if (const auto exp_doc = RestApi::parseJson(reply.get()); exp_doc)
+                    handleReply(*exp_doc);
                 else
                 {
-                    results.add(handler, makeErrorItem(get<QString>(var)));
+                    results.add(handler, makeErrorItem(exp_doc.error()));
                     batch = -1;
                 }
                 reply.reset();

@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2025 Manuel Schneider
+// Copyright (c) 2025-2026 Manuel Schneider
 
 #include "api.h"
 #include "items.h"
@@ -111,11 +111,10 @@ static void play(const RestApi &api, const QString &uri)
 {
     const auto reply = api.play({uri});
     QObject::connect(reply, &QNetworkReply::finished, reply, [reply, uri]{
-        const auto var = RestApi::parseJson(reply);
-        if (holds_alternative<QString>(var))
+        if (const auto exp_doc = RestApi::parseJson(reply);
+            !exp_doc)
         {
-            const auto error = get<QString>(var);
-            DEBG << "Failed to play" << uri << error;
+            DEBG << "Failed to play" << uri << exp_doc.error();
             DEBG << "Open local Spotify to run" << uri;
             openUrl(uri);
         }
@@ -128,9 +127,8 @@ static void queue(const RestApi &api, const QString &uri)
 {
     const auto reply = api.queue({uri});
     QObject::connect(reply, &QNetworkReply::finished, reply, [reply, uri]{
-        const auto var = RestApi::parseJson(reply);
-        if (holds_alternative<QString>(var))
-            WARN << "Failed to queue" << uri;
+        if (const auto exp_doc = RestApi::parseJson(reply); !exp_doc)
+            WARN << "Failed to queue" << uri << exp_doc.error();
         else
             DEBG << "Successfully queued" << uri;
     });
