@@ -1,9 +1,12 @@
-// Copyright (c) 2025-2025 Manuel Schneider
+// Copyright (c) 2025-2026 Manuel Schneider
 
 #include "handlers.h"
 #include "items.h"
 #include "plugin.h"
 #include <QCoreApplication>
+#include <QCoroAsyncGenerator>
+#include <QCoroNetworkReply>
+#include <QCoroSignal>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QNetworkReply>
@@ -57,71 +60,38 @@ QString SpotifySearchHandler::description() const { return description_; }
 QString SpotifySearchHandler::defaultTrigger() const
 { return localizedTypeString(type).toLower() + QChar::Space; }
 
-
-class SpotifySearchHandler::QueryExecution : public albert::QueryExecution
+AsyncItemGenerator SpotifySearchHandler::items(albert::QueryContext &ctx)
 {
-public:
-
-    SpotifySearchHandler &handler;
-    unique_ptr<Acquire> acquire;
-    unique_ptr<QNetworkReply> reply;
-    int batch;  // also valid flag
-    bool active;
-
-    QueryExecution(SpotifySearchHandler &h, QueryContext &c)
-        : albert::QueryExecution(c)
-        , handler(h)
-        , acquire(nullptr)
-        , reply(nullptr)
-        , batch(0)
-        , active(false)
-    {
-        fetchMore();
-    }
-
-    ~QueryExecution() override {}
-
-    void cancel() override final
-    {
-        acquire.reset();
-        reply.reset();
-        emit activeChanged(active = false);
-        batch = -1;
-    }
-
-    void fetchMore() override final
-    {
-        if (isActive() || !canFetchMore())
-            return;
-
-        emit activeChanged(active = true);
-        acquire = handler.rate_limiter_.acquire();
-        connect(acquire.get(), &Acquire::granted, this, [this]
+    try {
+        for (auto page = 0;; ++page)
         {
-            reply.reset(fetch(batch++));
-            connect(reply.get(), &QNetworkReply::finished, this, [this]
+            co_await qCoro(rate_limiter_.acquire().get(), &Acquire::granted);
+
+            if (!ctx.isValid())
+                co_return;
+
+            unique_ptr<QNetworkReply> reply{fetch(ctx, page)};
+
+            co_await reply.get();
+
+            if (const auto exp_doc = RestApi::parseJson(reply.get()); exp_doc)
             {
-                if (const auto exp_doc = RestApi::parseJson(reply.get()); exp_doc)
-                    handleReply(*exp_doc);
-                else
-                {
-                    results.add(handler, makeErrorItem(exp_doc.error()));
-                    batch = -1;
-                }
-                reply.reset();
-                emit activeChanged(active = false);
-            }, Qt::SingleShotConnection);
-        }, Qt::SingleShotConnection);
+                // TODO: GCC>13 yieling temporaries is fine
+                auto v = handleReply(ctx, *exp_doc);
+                co_yield ::move(v);
+            }
+            else
+            {
+                // TODO: GCC>13 yieling temporaries is fine
+                vector<shared_ptr<Item>> v{makeErrorItem(exp_doc.error())};
+                co_yield ::move(v);
+                co_return;
+            }
+        }
     }
-
-    bool canFetchMore() const override final { return batch >= 0; }
-
-    bool isActive() const override final { return active; }
-
-    virtual QNetworkReply *fetch(uint page) const = 0;
-
-    virtual void handleReply(const QJsonDocument &) = 0;
-};
+    catch (const exception &e) { CRIT << "Exception while fetching data:" << e.what(); }
+    catch (...) { CRIT << "Unknown exception while fetching data."; }
+}
 
 //--------------------------------------------------------------------------------------------------
 
@@ -132,34 +102,27 @@ TrackSearchHandler::TrackSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify tracks"))
 {}
 
-unique_ptr<QueryExecution> TrackSearchHandler::execution(QueryContext &context)
+QNetworkReply *TrackSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
-    struct Execution : public SpotifySearchHandler::QueryExecution
-    {
-        using QueryExecution::QueryExecution;
+    return ctx.query().isEmpty()
+               ? api.userTopTracks(batch_size, page * batch_size)
+               : api.search(ctx, Track, batch_size, page * batch_size);
+}
 
-        QNetworkReply *fetch(uint batch) const override
-        {
-            return context.query().isEmpty()
-                            ? handler.api.userTopTracks(batch_size, batch * batch_size)
-                            : handler.api.search(context, Track, batch_size, batch * batch_size);
-        }
+vector<shared_ptr<Item>>
+TrackSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+{
+    const auto items = ctx.query().isEmpty()
+                           ? doc[items_key]
+                           : doc[u"%1s"_s.arg(typeString(type))][items_key];
 
-        void handleReply(const QJsonDocument &doc) override
-        {
-            const auto items = context.query().isEmpty()
-                                   ? doc[items_key]
-                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
-            results.add(handler,
-                        items.toArray()
-                        | views::filter([](const auto &val) { return !val.isNull(); })
-                        | views::transform([this](const auto &val) {
-                            return make_shared<TrackItem>(handler.api, val.toObject());
-                        }));
-        }
-    };
+    auto v = items.toArray()
+           | views::filter([](const auto &val) { return !val.isNull(); })
+           | views::transform([this](const auto &val) {
+                 return make_shared<TrackItem>(api, val.toObject());
+             });
 
-    return make_unique<Execution>(*this, context);
+    return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -171,34 +134,26 @@ ArtistSearchHandler::ArtistSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify artists"))
 {}
 
-unique_ptr<QueryExecution> ArtistSearchHandler::execution(QueryContext &context)
+QNetworkReply *ArtistSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
-    struct Execution : public SpotifySearchHandler::QueryExecution
-    {
-        using QueryExecution::QueryExecution;
+    return ctx.query().isEmpty()
+               ? api.userTopArtists(batch_size, page * batch_size)
+               : api.search(ctx, type, batch_size, page * batch_size);
+}
 
-        QNetworkReply *fetch(uint batch) const override
-        {
-            return context.query().isEmpty()
-                       ? handler.api.userTopArtists(batch_size, batch * batch_size)
-                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
-        }
+vector<shared_ptr<Item>>
+ArtistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+{
+    const auto items = ctx.query().isEmpty() ? doc[items_key]
+                                             : doc[u"%1s"_s.arg(typeString(type))][items_key];
 
-        void handleReply(const QJsonDocument &doc) override
-        {
-            const auto items = context.query().isEmpty()
-                                   ? doc[items_key]
-                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
-            results.add(handler,
-                        items.toArray()
-                        | views::filter([](const auto &val) { return !val.isNull(); })
-                        | views::transform([this](const auto &val) {
-                            return make_shared<ArtistItem>(handler.api, val.toObject());
-                        }));
-        }
-    };
+    auto v = items.toArray()
+             | views::filter([](const auto &val) { return !val.isNull(); })
+             | views::transform([this](const auto &val) {
+                     return make_shared<ArtistItem>(api, val.toObject());
+               });
 
-    return make_unique<Execution>(*this, context);
+    return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -210,40 +165,35 @@ AlbumSearchHandler::AlbumSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify albums"))
 {}
 
-unique_ptr<QueryExecution> AlbumSearchHandler::execution(QueryContext &context)
+QNetworkReply *AlbumSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
-    struct Execution : public SpotifySearchHandler::QueryExecution
+    return ctx.query().isEmpty()
+               ? api.userAlbums(batch_size, page * batch_size)
+               : api.search(ctx, type, batch_size, page * batch_size);
+}
+
+vector<shared_ptr<Item>>
+AlbumSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+{
+    if (ctx.query().isEmpty())
     {
-        using QueryExecution::QueryExecution;
-
-        QNetworkReply *fetch(uint batch) const override
-        {
-            return context.query().isEmpty()
-                       ? handler.api.userAlbums(batch_size, batch * batch_size)
-                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
-        }
-
-        void handleReply(const QJsonDocument &doc) override
-        {
-            if (context.query().isEmpty())
-                results.add(handler,
-                            doc[items_key].toArray()
-                            | views::filter([](const auto &val) { return !val.isNull();})
-                            | views::transform([this](const auto &val) {
-                                const auto album = val[typeString(handler.type)].toObject();
-                                return make_shared<AlbumItem>(handler.api, album);
-                            }));
-            else
-                results.add(handler,
-                            doc[u"%1s"_s.arg(typeString(handler.type))][items_key].toArray()
-                            | views::filter([](const auto &val) { return !val.isNull(); })
-                            | views::transform([this](const auto &val) {
-                                return make_shared<AlbumItem>(handler.api, val.toObject());
-                            }));
-        }
-    };
-
-    return make_unique<Execution>(*this, context);
+        auto v = doc[items_key].toArray()
+                 | views::filter([](const auto &val) { return !val.isNull(); })
+                 | views::transform([this](const auto &val) {
+                       const auto album = val[typeString(type)].toObject();
+                       return make_shared<AlbumItem>(api, album);
+                   });
+        return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
+    }
+    else
+    {
+        auto v = doc[u"%1s"_s.arg(typeString(type))][items_key].toArray()
+                 | views::filter([](const auto &val) { return !val.isNull(); })
+                 | views::transform([this](const auto &val) {
+                       return make_shared<AlbumItem>(api, val.toObject());
+                   });
+        return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -255,35 +205,27 @@ PlaylistSearchHandler::PlaylistSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify playlists"))
 {}
 
-unique_ptr<QueryExecution> PlaylistSearchHandler::execution(QueryContext &context)
+QNetworkReply *PlaylistSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
-    struct Execution : public SpotifySearchHandler::QueryExecution
-    {
-        using QueryExecution::QueryExecution;
+    return ctx.query().isEmpty()
+               ? api.userPlaylists(batch_size, page * batch_size)
+               : api.search(ctx, type, batch_size, page * batch_size);
+}
 
-        QNetworkReply *fetch(uint batch) const override
-        {
-            return context.query().isEmpty()
-                       ? handler.api.userPlaylists(batch_size, batch * batch_size)
-                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
-        }
+vector<shared_ptr<Item>>
+PlaylistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+{
+    const auto items = ctx.query().isEmpty()
+                           ? doc[items_key]
+                           : doc[u"%1s"_s.arg(typeString(type))][items_key];
 
-        void handleReply(const QJsonDocument &doc) override
-        {
-            const auto items = context.query().isEmpty()
-                                   ? doc[items_key]
-                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
+    auto v = items.toArray()
+             | views::filter([](const auto &val) { return !val.isNull(); })
+             | views::transform([this](const auto &val) {
+                   return make_shared<PlaylistItem>(api, val.toObject());
+               });
 
-            results.add(handler,
-                        items.toArray()
-                        | views::filter([](const auto &val) { return !val.isNull(); })
-                        | views::transform([this](const auto &val) {
-                            return make_shared<PlaylistItem>(handler.api, val.toObject());
-                        }));
-        }
-    };
-
-    return make_unique<Execution>(*this, context);
+    return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -295,40 +237,35 @@ ShowSearchHandler::ShowSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify shows"))
 {}
 
-unique_ptr<QueryExecution> ShowSearchHandler::execution(QueryContext &context)
+QNetworkReply *ShowSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
-    struct Execution : public SpotifySearchHandler::QueryExecution
+    return ctx.query().isEmpty()
+               ? api.userShows(batch_size, page * batch_size)
+               : api.search(ctx, type, batch_size, page * batch_size);
+}
+
+vector<shared_ptr<Item>>
+ShowSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+{
+    if (ctx.query().isEmpty())
     {
-        using QueryExecution::QueryExecution;
-
-        QNetworkReply *fetch(uint batch) const override
-        {
-            return context.query().isEmpty()
-                       ? handler.api.userShows(batch_size, batch * batch_size)
-                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
-        }
-
-        void handleReply(const QJsonDocument &doc) override
-        {
-            if (context.query().isEmpty())
-                results.add(handler,
-                            doc[items_key].toArray()
-                            | views::filter([](const auto &val) { return !val.isNull(); })
-                            | views::transform([this](const auto &val) {
-                                const auto album = val[typeString(handler.type)].toObject();
-                                return make_shared<ShowItem>(handler.api, album);
-                            }));
-            else
-                results.add(handler,
-                            doc[u"%1s"_s.arg(typeString(handler.type))][items_key].toArray()
-                            | views::filter([](const auto &val) { return !val.isNull(); })
-                            | views::transform([this](const auto &val) {
-                                return make_shared<ShowItem>(handler.api, val.toObject());
-                            }));
-        }
-    };
-
-    return make_unique<Execution>(*this, context);
+        auto v = doc[items_key].toArray()
+                 | views::filter([](const auto &val) { return !val.isNull(); })
+                 | views::transform([this](const auto &val) {
+                       const auto album = val[typeString(type)].toObject();
+                       return make_shared<ShowItem>(api, album);
+                   });
+        return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
+    }
+    else
+    {
+        auto v = doc[u"%1s"_s.arg(typeString(type))][items_key].toArray()
+                 | views::filter([](const auto &val) { return !val.isNull(); })
+                 | views::transform([this](const auto &val) {
+                       return make_shared<ShowItem>(api, val.toObject());
+                   });
+        return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -340,44 +277,37 @@ EpisodeSearchHandler::EpisodeSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify episodes"))
 {}
 
-unique_ptr<QueryExecution> EpisodeSearchHandler::execution(QueryContext &context)
+QNetworkReply *EpisodeSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
-    struct Execution : public SpotifySearchHandler::QueryExecution
+    return ctx.query().isEmpty()
+               ? api.userEpisodes(batch_size, page * batch_size)
+               : api.search(ctx, type, batch_size, page * batch_size);
+}
+
+vector<shared_ptr<Item>>
+EpisodeSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+{
+    if (ctx.query().isEmpty())
     {
-        using QueryExecution::QueryExecution;
-
-        QNetworkReply *fetch(uint batch) const override
-        {
-            return context.query().isEmpty()
-                       ? handler.api.userEpisodes(batch_size, batch * batch_size)
-                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
-        }
-
-        void handleReply(const QJsonDocument &doc) override
-        {
-            if (context.query().isEmpty())
-                // endpoint beta and buggy af random null and non null but null filled items
-                results.add(handler,
-                            doc[items_key].toArray()
-                            | views::filter([](const auto &val) { return !val.isNull(); })
-                            | views::transform([this](const auto &val) {
-                                  return val[typeString(handler.type)];
-                            })
-                            | views::filter([](const auto &val) { return !val["id"_L1].isNull(); })
-                            | views::transform([this](const auto &val) {
-                                return make_shared<EpisodeItem>(handler.api, val.toObject());
-                            }));
-            else
-                results.add(handler,
-                            doc[u"%1s"_s.arg(typeString(handler.type))][items_key].toArray()
-                            | views::filter([](const auto &val) { return !val.isNull(); })
-                            | views::transform([this](const auto &val) {
-                                return make_shared<EpisodeItem>(handler.api, val.toObject());
-                            }));
-        }
-    };
-
-    return make_unique<Execution>(*this, context);
+       // endpoint beta and buggy af random null and non null but null filled items
+       auto v = doc[items_key].toArray()
+                | views::filter([](const auto &val) { return !val.isNull(); })
+                | views::transform([this](const auto &val) { return val[typeString(type)]; })
+                | views::filter([](const auto &val) { return !val["id"_L1].isNull(); })
+                | views::transform([this](const auto &val) {
+                      return make_shared<EpisodeItem>(api, val.toObject());
+                  });
+       return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
+    }
+    else
+    {
+        auto v = doc[u"%1s"_s.arg(typeString(type))][items_key].toArray()
+                 | views::filter([](const auto &val) { return !val.isNull(); })
+                 | views::transform([this](const auto &val) {
+                       return make_shared<EpisodeItem>(api, val.toObject());
+                   });
+        return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -389,32 +319,25 @@ AudiobookSearchHandler::AudiobookSearchHandler(RestApi &api) :
                          Plugin::tr("Search Spotify audiobooks"))
 {}
 
-unique_ptr<QueryExecution> AudiobookSearchHandler::execution(QueryContext &context)
+QNetworkReply *AudiobookSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
-    struct Execution : public SpotifySearchHandler::QueryExecution
-    {
-        using QueryExecution::QueryExecution;
+    return ctx.query().isEmpty()
+               ? api.userAudiobooks(batch_size, page * batch_size)
+               : api.search(ctx, type, batch_size, page * batch_size);
+}
 
-        QNetworkReply *fetch(uint batch) const override
-        {
-            return context.query().isEmpty()
-                       ? handler.api.userAudiobooks(batch_size, batch * batch_size)
-                       : handler.api.search(context, handler.type, batch_size, batch * batch_size);
-        }
+vector<shared_ptr<Item>>
+AudiobookSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+{
+    const auto items = ctx.query().isEmpty()
+                           ? doc[items_key]
+                           : doc[u"%1s"_s.arg(typeString(type))][items_key];
 
-        void handleReply(const QJsonDocument &doc) override
-        {
-            const auto items = context.query().isEmpty()
-                                   ? doc[items_key]
-                                   : doc[u"%1s"_s.arg(typeString(handler.type))][items_key];
-            results.add(handler,
-                        items.toArray()
-                        | views::filter([](const auto &val) { return !val.isNull(); })
-                        | views::transform([this](const auto &val) {
-                            return make_shared<AudiobookItem>(handler.api, val.toObject());
-                        }));
-        }
-    };
+    auto v = items.toArray()
+             | views::filter([](const auto &val) { return !val.isNull(); })
+             | views::transform([this](const auto &val) {
+                   return make_shared<AudiobookItem>(api, val.toObject());
+               });
 
-    return make_unique<Execution>(*this, context);
+    return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
 }

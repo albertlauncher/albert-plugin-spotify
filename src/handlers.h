@@ -1,15 +1,15 @@
-// Copyright (c) 2025-2025 Manuel Schneider
+// Copyright (c) 2025-2026 Manuel Schneider
 
 #pragma once
 #include "api.h"
+#include <albert/asyncgeneratorqueryhandler.h>
 #include <albert/networkutil.h>
-#include <albert/queryhandler.h>
 #include <albert/ratelimiter.h>
 class Plugin;
 class QJsonArray;
 class SpotifyItem;
 
-class SpotifySearchHandler : public albert::QueryHandler
+class SpotifySearchHandler : public albert::AsyncGeneratorQueryHandler
 {
 public:
     SpotifySearchHandler(const RestApi &api,
@@ -21,6 +21,11 @@ public:
     QString name() const override;
     QString description() const override;
     QString defaultTrigger() const override;
+    albert::AsyncItemGenerator items(albert::QueryContext &) override;
+
+    virtual QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const = 0;
+    virtual std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) = 0;
 
     const RestApi &api;
     const SearchType type;
@@ -39,47 +44,61 @@ class TrackSearchHandler : public SpotifySearchHandler
 {
 public:
     TrackSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
+    QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
+    std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
 };
 
 class ArtistSearchHandler : public SpotifySearchHandler
 {
 public:
     ArtistSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
+    QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
+    std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
 };
 
 class AlbumSearchHandler : public SpotifySearchHandler
 {
 public:
     AlbumSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
+    QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
+    std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
 };
 
 class  PlaylistSearchHandler : public SpotifySearchHandler
 {
 public:
     PlaylistSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
+    QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
+    std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
 };
 
 class ShowSearchHandler : public SpotifySearchHandler
 {
 public:
     ShowSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
+    QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
+    std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
 };
 
 class EpisodeSearchHandler : public SpotifySearchHandler
 {
 public:
     EpisodeSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
+    QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
+    std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
 };
 
 class AudiobookSearchHandler : public SpotifySearchHandler
 {
 public:
     AudiobookSearchHandler(RestApi&);
-    std::unique_ptr<albert::QueryExecution> execution(albert::QueryContext &) override;
+    QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
+    std::vector<std::shared_ptr<albert::Item>>
+    handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
 };
