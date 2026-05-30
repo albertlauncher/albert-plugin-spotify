@@ -3,7 +3,7 @@
 #pragma once
 #include "api.h"
 #include <albert/networkutil.h>
-#include <albert/rankedqueryhandler.h>
+#include <albert/queryhandler.h>
 #include <albert/ratelimiter.h>
 class Plugin;
 class QJsonArray;
