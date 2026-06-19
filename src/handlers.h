@@ -27,17 +27,12 @@ public:
     virtual std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) = 0;
 
-    const RestApi &api;
-    const SearchType type;
-
 protected:
-
+    const RestApi &api_;
+    const SearchType type_;
     const QString name_;
     const QString description_;
     albert::detail::RateLimiter rate_limiter_;
-
-    class QueryExecution;
-
 };
 
 class TrackSearchHandler : public SpotifySearchHandler

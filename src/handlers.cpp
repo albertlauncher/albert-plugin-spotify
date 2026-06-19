@@ -40,25 +40,25 @@ static auto makeErrorItem(const QString &error)
                                 [] { App::instance().showSettings(u"spotify"_s); }}});
 }
 
-SpotifySearchHandler::SpotifySearchHandler(const RestApi &api_,
-                                           SearchType type_,
+SpotifySearchHandler::SpotifySearchHandler(const RestApi &api,
+                                           SearchType type,
                                            const QString &name,
                                            const QString &description) :
-    api(api_),
-    type(type_),
+    api_(api),
+    type_(type),
     name_(name),
     description_(description),
     rate_limiter_(1000)
 {}
 
-QString SpotifySearchHandler::id() const { return typeString(type); }
+QString SpotifySearchHandler::id() const { return typeString(type_); }
 
 QString SpotifySearchHandler::name() const { return name_; }
 
 QString SpotifySearchHandler::description() const { return description_; }
 
 QString SpotifySearchHandler::defaultTrigger() const
-{ return localizedTypeString(type).toLower() + QChar::Space; }
+{ return localizedTypeString(type_).toLower() + QChar::Space; }
 
 AsyncItemGenerator SpotifySearchHandler::items(albert::QueryContext &ctx)
 {
@@ -105,8 +105,8 @@ TrackSearchHandler::TrackSearchHandler(RestApi &api) :
 QNetworkReply *TrackSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
     return ctx.query().isEmpty()
-               ? api.userTopTracks(batch_size, page * batch_size)
-               : api.search(ctx, Track, batch_size, page * batch_size);
+               ? api_.userTopTracks(batch_size, page * batch_size)
+               : api_.search(ctx, Track, batch_size, page * batch_size);
 }
 
 vector<shared_ptr<Item>>
@@ -114,12 +114,12 @@ TrackSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &
 {
     const auto items = ctx.query().isEmpty()
                            ? doc[items_key]
-                           : doc[u"%1s"_s.arg(typeString(type))][items_key];
+                           : doc[u"%1s"_s.arg(typeString(type_))][items_key];
 
     auto v = items.toArray()
            | views::filter([](const auto &val) { return !val.isNull(); })
            | views::transform([this](const auto &val) {
-                 return make_shared<TrackItem>(api, val.toObject());
+                 return make_shared<TrackItem>(api_, val.toObject());
              });
 
     return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
@@ -137,20 +137,20 @@ ArtistSearchHandler::ArtistSearchHandler(RestApi &api) :
 QNetworkReply *ArtistSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
     return ctx.query().isEmpty()
-               ? api.userTopArtists(batch_size, page * batch_size)
-               : api.search(ctx, type, batch_size, page * batch_size);
+               ? api_.userTopArtists(batch_size, page * batch_size)
+               : api_.search(ctx, type_, batch_size, page * batch_size);
 }
 
 vector<shared_ptr<Item>>
 ArtistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
 {
     const auto items = ctx.query().isEmpty() ? doc[items_key]
-                                             : doc[u"%1s"_s.arg(typeString(type))][items_key];
+                                             : doc[u"%1s"_s.arg(typeString(type_))][items_key];
 
     auto v = items.toArray()
              | views::filter([](const auto &val) { return !val.isNull(); })
              | views::transform([this](const auto &val) {
-                     return make_shared<ArtistItem>(api, val.toObject());
+                     return make_shared<ArtistItem>(api_, val.toObject());
                });
 
     return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
@@ -168,8 +168,8 @@ AlbumSearchHandler::AlbumSearchHandler(RestApi &api) :
 QNetworkReply *AlbumSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
     return ctx.query().isEmpty()
-               ? api.userAlbums(batch_size, page * batch_size)
-               : api.search(ctx, type, batch_size, page * batch_size);
+               ? api_.userAlbums(batch_size, page * batch_size)
+               : api_.search(ctx, type_, batch_size, page * batch_size);
 }
 
 vector<shared_ptr<Item>>
@@ -180,17 +180,17 @@ AlbumSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &
         auto v = doc[items_key].toArray()
                  | views::filter([](const auto &val) { return !val.isNull(); })
                  | views::transform([this](const auto &val) {
-                       const auto album = val[typeString(type)].toObject();
-                       return make_shared<AlbumItem>(api, album);
+                       const auto album = val[typeString(type_)].toObject();
+                       return make_shared<AlbumItem>(api_, album);
                    });
         return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
     }
     else
     {
-        auto v = doc[u"%1s"_s.arg(typeString(type))][items_key].toArray()
+        auto v = doc[u"%1s"_s.arg(typeString(type_))][items_key].toArray()
                  | views::filter([](const auto &val) { return !val.isNull(); })
                  | views::transform([this](const auto &val) {
-                       return make_shared<AlbumItem>(api, val.toObject());
+                       return make_shared<AlbumItem>(api_, val.toObject());
                    });
         return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
     }
@@ -208,8 +208,8 @@ PlaylistSearchHandler::PlaylistSearchHandler(RestApi &api) :
 QNetworkReply *PlaylistSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
     return ctx.query().isEmpty()
-               ? api.userPlaylists(batch_size, page * batch_size)
-               : api.search(ctx, type, batch_size, page * batch_size);
+               ? api_.userPlaylists(batch_size, page * batch_size)
+               : api_.search(ctx, type_, batch_size, page * batch_size);
 }
 
 vector<shared_ptr<Item>>
@@ -217,12 +217,12 @@ PlaylistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocumen
 {
     const auto items = ctx.query().isEmpty()
                            ? doc[items_key]
-                           : doc[u"%1s"_s.arg(typeString(type))][items_key];
+                           : doc[u"%1s"_s.arg(typeString(type_))][items_key];
 
     auto v = items.toArray()
              | views::filter([](const auto &val) { return !val.isNull(); })
              | views::transform([this](const auto &val) {
-                   return make_shared<PlaylistItem>(api, val.toObject());
+                   return make_shared<PlaylistItem>(api_, val.toObject());
                });
 
     return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
@@ -240,8 +240,8 @@ ShowSearchHandler::ShowSearchHandler(RestApi &api) :
 QNetworkReply *ShowSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
     return ctx.query().isEmpty()
-               ? api.userShows(batch_size, page * batch_size)
-               : api.search(ctx, type, batch_size, page * batch_size);
+               ? api_.userShows(batch_size, page * batch_size)
+               : api_.search(ctx, type_, batch_size, page * batch_size);
 }
 
 vector<shared_ptr<Item>>
@@ -252,17 +252,17 @@ ShowSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &d
         auto v = doc[items_key].toArray()
                  | views::filter([](const auto &val) { return !val.isNull(); })
                  | views::transform([this](const auto &val) {
-                       const auto album = val[typeString(type)].toObject();
-                       return make_shared<ShowItem>(api, album);
+                       const auto album = val[typeString(type_)].toObject();
+                       return make_shared<ShowItem>(api_, album);
                    });
         return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
     }
     else
     {
-        auto v = doc[u"%1s"_s.arg(typeString(type))][items_key].toArray()
+        auto v = doc[u"%1s"_s.arg(typeString(type_))][items_key].toArray()
                  | views::filter([](const auto &val) { return !val.isNull(); })
                  | views::transform([this](const auto &val) {
-                       return make_shared<ShowItem>(api, val.toObject());
+                       return make_shared<ShowItem>(api_, val.toObject());
                    });
         return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
     }
@@ -280,8 +280,8 @@ EpisodeSearchHandler::EpisodeSearchHandler(RestApi &api) :
 QNetworkReply *EpisodeSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
     return ctx.query().isEmpty()
-               ? api.userEpisodes(batch_size, page * batch_size)
-               : api.search(ctx, type, batch_size, page * batch_size);
+               ? api_.userEpisodes(batch_size, page * batch_size)
+               : api_.search(ctx, type_, batch_size, page * batch_size);
 }
 
 vector<shared_ptr<Item>>
@@ -292,19 +292,19 @@ EpisodeSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument
        // endpoint beta and buggy af random null and non null but null filled items
        auto v = doc[items_key].toArray()
                 | views::filter([](const auto &val) { return !val.isNull(); })
-                | views::transform([this](const auto &val) { return val[typeString(type)]; })
+                | views::transform([this](const auto &val) { return val[typeString(type_)]; })
                 | views::filter([](const auto &val) { return !val["id"_L1].isNull(); })
                 | views::transform([this](const auto &val) {
-                      return make_shared<EpisodeItem>(api, val.toObject());
+                      return make_shared<EpisodeItem>(api_, val.toObject());
                   });
        return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
     }
     else
     {
-        auto v = doc[u"%1s"_s.arg(typeString(type))][items_key].toArray()
+        auto v = doc[u"%1s"_s.arg(typeString(type_))][items_key].toArray()
                  | views::filter([](const auto &val) { return !val.isNull(); })
                  | views::transform([this](const auto &val) {
-                       return make_shared<EpisodeItem>(api, val.toObject());
+                       return make_shared<EpisodeItem>(api_, val.toObject());
                    });
         return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
     }
@@ -322,8 +322,8 @@ AudiobookSearchHandler::AudiobookSearchHandler(RestApi &api) :
 QNetworkReply *AudiobookSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
 {
     return ctx.query().isEmpty()
-               ? api.userAudiobooks(batch_size, page * batch_size)
-               : api.search(ctx, type, batch_size, page * batch_size);
+               ? api_.userAudiobooks(batch_size, page * batch_size)
+               : api_.search(ctx, type_, batch_size, page * batch_size);
 }
 
 vector<shared_ptr<Item>>
@@ -331,12 +331,12 @@ AudiobookSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocume
 {
     const auto items = ctx.query().isEmpty()
                            ? doc[items_key]
-                           : doc[u"%1s"_s.arg(typeString(type))][items_key];
+                           : doc[u"%1s"_s.arg(typeString(type_))][items_key];
 
     auto v = items.toArray()
              | views::filter([](const auto &val) { return !val.isNull(); })
              | views::transform([this](const auto &val) {
-                   return make_shared<AudiobookItem>(api, val.toObject());
+                   return make_shared<AudiobookItem>(api_, val.toObject());
                });
 
     return vector<shared_ptr<Item>>{begin(v), end(v)};  // ranges::to
