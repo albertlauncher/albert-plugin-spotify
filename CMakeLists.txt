@@ -14,7 +14,7 @@ albert_plugin(
         QCoro6::Coro
         QCoro6::Core
         QCoro6::Network
-        $<BUILD_LOCAL_INTERFACE:qt6keychain>
+        Qt6Keychain::Qt6Keychain
 )
 
 if(APPLE)
