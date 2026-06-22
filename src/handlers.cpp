@@ -59,7 +59,7 @@ QString SpotifySearchHandler::description() const { return description_; }
 QString SpotifySearchHandler::defaultTrigger() const
 { return localizedTypeString(type_).toLower() + QChar::Space; }
 
-AsyncItemGenerator SpotifySearchHandler::items(albert::QueryContext &ctx)
+AsyncItemGenerator SpotifySearchHandler::items(QueryContext ctx)
 {
     try {
         for (auto page = 0;; ++page)
@@ -101,7 +101,7 @@ TrackSearchHandler::TrackSearchHandler(API &api) :
                          Plugin::tr("Search Spotify tracks"))
 {}
 
-QNetworkReply *TrackSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
+QNetworkReply *TrackSearchHandler::fetch(QueryContext ctx, uint page) const
 {
     return ctx.query().isEmpty()
                ? api_.userTopTracks(batch_size, page * batch_size)
@@ -109,7 +109,7 @@ QNetworkReply *TrackSearchHandler::fetch(albert::QueryContext &ctx, uint page) c
 }
 
 vector<shared_ptr<Item>>
-TrackSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+TrackSearchHandler::handleReply(QueryContext ctx, const QJsonDocument &doc)
 {
     const auto items = ctx.query().isEmpty()
                            ? doc[items_key]
@@ -133,7 +133,7 @@ ArtistSearchHandler::ArtistSearchHandler(API &api) :
                          Plugin::tr("Search Spotify artists"))
 {}
 
-QNetworkReply *ArtistSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
+QNetworkReply *ArtistSearchHandler::fetch(QueryContext ctx, uint page) const
 {
     return ctx.query().isEmpty()
                ? api_.userTopArtists(batch_size, page * batch_size)
@@ -141,7 +141,7 @@ QNetworkReply *ArtistSearchHandler::fetch(albert::QueryContext &ctx, uint page) 
 }
 
 vector<shared_ptr<Item>>
-ArtistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+ArtistSearchHandler::handleReply(QueryContext ctx, const QJsonDocument &doc)
 {
     const auto items = ctx.query().isEmpty() ? doc[items_key]
                                              : doc[u"%1s"_s.arg(typeString(type_))][items_key];
@@ -164,7 +164,7 @@ AlbumSearchHandler::AlbumSearchHandler(API &api) :
                          Plugin::tr("Search Spotify albums"))
 {}
 
-QNetworkReply *AlbumSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
+QNetworkReply *AlbumSearchHandler::fetch(QueryContext ctx, uint page) const
 {
     return ctx.query().isEmpty()
                ? api_.userAlbums(batch_size, page * batch_size)
@@ -172,7 +172,7 @@ QNetworkReply *AlbumSearchHandler::fetch(albert::QueryContext &ctx, uint page) c
 }
 
 vector<shared_ptr<Item>>
-AlbumSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+AlbumSearchHandler::handleReply(QueryContext ctx, const QJsonDocument &doc)
 {
     if (ctx.query().isEmpty())
     {
@@ -204,7 +204,7 @@ PlaylistSearchHandler::PlaylistSearchHandler(API &api) :
                          Plugin::tr("Search Spotify playlists"))
 {}
 
-QNetworkReply *PlaylistSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
+QNetworkReply *PlaylistSearchHandler::fetch(QueryContext ctx, uint page) const
 {
     return ctx.query().isEmpty()
                ? api_.userPlaylists(batch_size, page * batch_size)
@@ -212,7 +212,7 @@ QNetworkReply *PlaylistSearchHandler::fetch(albert::QueryContext &ctx, uint page
 }
 
 vector<shared_ptr<Item>>
-PlaylistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+PlaylistSearchHandler::handleReply(QueryContext ctx, const QJsonDocument &doc)
 {
     const auto items = ctx.query().isEmpty()
                            ? doc[items_key]
@@ -236,7 +236,7 @@ ShowSearchHandler::ShowSearchHandler(API &api) :
                          Plugin::tr("Search Spotify shows"))
 {}
 
-QNetworkReply *ShowSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
+QNetworkReply *ShowSearchHandler::fetch(QueryContext ctx, uint page) const
 {
     return ctx.query().isEmpty()
                ? api_.userShows(batch_size, page * batch_size)
@@ -244,7 +244,7 @@ QNetworkReply *ShowSearchHandler::fetch(albert::QueryContext &ctx, uint page) co
 }
 
 vector<shared_ptr<Item>>
-ShowSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+ShowSearchHandler::handleReply(QueryContext ctx, const QJsonDocument &doc)
 {
     if (ctx.query().isEmpty())
     {
@@ -276,7 +276,7 @@ EpisodeSearchHandler::EpisodeSearchHandler(API &api) :
                          Plugin::tr("Search Spotify episodes"))
 {}
 
-QNetworkReply *EpisodeSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
+QNetworkReply *EpisodeSearchHandler::fetch(QueryContext ctx, uint page) const
 {
     return ctx.query().isEmpty()
                ? api_.userEpisodes(batch_size, page * batch_size)
@@ -284,7 +284,7 @@ QNetworkReply *EpisodeSearchHandler::fetch(albert::QueryContext &ctx, uint page)
 }
 
 vector<shared_ptr<Item>>
-EpisodeSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+EpisodeSearchHandler::handleReply(QueryContext ctx, const QJsonDocument &doc)
 {
     if (ctx.query().isEmpty())
     {
@@ -318,7 +318,7 @@ AudiobookSearchHandler::AudiobookSearchHandler(API &api) :
                          Plugin::tr("Search Spotify audiobooks"))
 {}
 
-QNetworkReply *AudiobookSearchHandler::fetch(albert::QueryContext &ctx, uint page) const
+QNetworkReply *AudiobookSearchHandler::fetch(QueryContext ctx, uint page) const
 {
     return ctx.query().isEmpty()
                ? api_.userAudiobooks(batch_size, page * batch_size)
@@ -326,7 +326,7 @@ QNetworkReply *AudiobookSearchHandler::fetch(albert::QueryContext &ctx, uint pag
 }
 
 vector<shared_ptr<Item>>
-AudiobookSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &doc)
+AudiobookSearchHandler::handleReply(QueryContext ctx, const QJsonDocument &doc)
 {
     const auto items = ctx.query().isEmpty()
                            ? doc[items_key]
