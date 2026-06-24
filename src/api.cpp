@@ -50,7 +50,7 @@ QString localizedTypeString(SearchType type)
 
 // -------------------------------------------------------------------------------------------------
 
-RestApi::RestApi()
+API::API()
 {
     oauth.setAuthUrl(oauth_auth_url);
     oauth.setScope(oauth_scope);
@@ -70,7 +70,7 @@ RestApi::RestApi()
     });
 }
 
-void RestApi::updateAccountInformatoin()
+void API::updateAccountInformatoin()
 {
     if (oauth.state() != OAuth2::State::Granted)
         return;
@@ -79,7 +79,7 @@ void RestApi::updateAccountInformatoin()
 
     QObject::connect(reply, &QNetworkReply::finished, &oauth, [this, reply]  // use oauth as context to avoid having inherit qobject
     {
-        if (auto exp_doc = RestApi::parseJson(reply); !exp_doc)
+        if (auto exp_doc = API::parseJson(reply); !exp_doc)
             WARN << "Failed fetching user profile:" << exp_doc.error();
         else
         {
@@ -97,13 +97,13 @@ void RestApi::updateAccountInformatoin()
     });
 }
 
-const QString &RestApi::username() const { return username_; }
+const QString &API::username() const { return username_; }
 
-bool RestApi::isPremium() const { return is_premium_; }
+bool API::isPremium() const { return is_premium_; }
 
 // -------------------------------------------------------------------------------------------------
 
-expected<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
+expected<QJsonDocument, QString> API::parseJson(QNetworkReply *reply)
 {
     const QByteArray data = reply->readAll();
     QJsonParseError parseError;
@@ -132,7 +132,7 @@ expected<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
     return unexpected(u"%1: %2"_s.arg(reply->errorString(), QString::fromUtf8(data)));
 }
 
-QNetworkRequest RestApi::request(const QString &path, const QUrlQuery &query)
+QNetworkRequest API::request(const QString &path, const QUrlQuery &query)
 {
     QUrl url(u"https://api.spotify.com"_s);
     url.setPath(path);
@@ -150,13 +150,13 @@ QNetworkRequest RestApi::request(const QString &path, const QUrlQuery &query)
 
 // -------------------------------------------------------------------------------------------------
 
-QNetworkReply *RestApi::userProfile()
+QNetworkReply *API::userProfile()
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-current-users-profile
     return network().get(request(u"/v1/me"_s, {}));
 }
 
-// QNetworkReply *RestApi::userTracks(uint limit, uint offset) const
+// QNetworkReply *API::userTracks(uint limit, uint offset) const
 // {
 //     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-tracks
 //     return network().get(request(u"/v1/me/tracks"_s,
@@ -164,7 +164,7 @@ QNetworkReply *RestApi::userProfile()
 //                                   {u"offset"_s, QString::number(offset)}}));
 // }
 
-QNetworkReply *RestApi::userTopTracks(uint limit, uint offset)
+QNetworkReply *API::userTopTracks(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-top-artists-and-tracks
     return network().get(request(u"/v1/me/top/tracks"_s,
@@ -172,7 +172,7 @@ QNetworkReply *RestApi::userTopTracks(uint limit, uint offset)
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userTopArtists(uint limit, uint offset)
+QNetworkReply *API::userTopArtists(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-top-artists-and-tracks
     return network().get(request(u"/v1/me/top/artists"_s,
@@ -180,7 +180,7 @@ QNetworkReply *RestApi::userTopArtists(uint limit, uint offset)
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-// QNetworkReply *RestApi::userArtists(uint limit)
+// QNetworkReply *API::userArtists(uint limit)
 // {
 //     // https://developer.spotify.com/documentation/web-api/reference/get-followed
 //     return network().get(request(u"/v1/me/following"_s,
@@ -188,7 +188,7 @@ QNetworkReply *RestApi::userTopArtists(uint limit, uint offset)
 //                                   {u"type"_s, typeString(Artist)}}));
 // }
 
-QNetworkReply *RestApi::userAlbums(uint limit, uint offset)
+QNetworkReply *API::userAlbums(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-albums
     return network().get(request(u"/v1/me/albums"_s,
@@ -196,7 +196,7 @@ QNetworkReply *RestApi::userAlbums(uint limit, uint offset)
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userPlaylists(uint limit, uint offset)
+QNetworkReply *API::userPlaylists(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-a-list-of-current-users-playlists
     return network().get(request(u"/v1/me/playlists"_s,
@@ -204,7 +204,7 @@ QNetworkReply *RestApi::userPlaylists(uint limit, uint offset)
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userShows(uint limit, uint offset)
+QNetworkReply *API::userShows(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-shows
     return network().get(request(u"/v1/me/shows"_s,
@@ -212,7 +212,7 @@ QNetworkReply *RestApi::userShows(uint limit, uint offset)
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userEpisodes(uint limit, uint offset)
+QNetworkReply *API::userEpisodes(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-episodes
     return network().get(request(u"/v1/me/episodes"_s,
@@ -220,7 +220,7 @@ QNetworkReply *RestApi::userEpisodes(uint limit, uint offset)
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userAudiobooks(uint limit, uint offset)
+QNetworkReply *API::userAudiobooks(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-audiobooks
     return network().get(request(u"/v1/me/audiobooks"_s,
@@ -228,14 +228,14 @@ QNetworkReply *RestApi::userAudiobooks(uint limit, uint offset)
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::getDevices()
+QNetworkReply *API::getDevices()
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-a-users-available-devices
     return network().get(request(u"/v1/me/player/devices"_s,
                                  {}));
 }
 
-QNetworkReply *RestApi::search(const QString &query, SearchType type, uint limit, uint offset)
+QNetworkReply *API::search(const QString &query, SearchType type, uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/search
     // QStringList types;
@@ -254,7 +254,7 @@ QNetworkReply *RestApi::search(const QString &query, SearchType type, uint limit
                                  }));
 }
 
-QNetworkReply *RestApi::play(const QStringList &uris, const QString& deviceId)
+QNetworkReply *API::play(const QStringList &uris, const QString& deviceId)
 {
     // https://developer.spotify.com/documentation/web-api/reference/start-a-users-playback
     auto params = deviceId.isNull() ? QUrlQuery{} : QUrlQuery{{u"device_id"_s, deviceId}};
@@ -264,7 +264,7 @@ QNetworkReply *RestApi::play(const QStringList &uris, const QString& deviceId)
                          QJsonDocument(body).toJson());
 }
 
-QNetworkReply *RestApi::pause(const QString& deviceId)
+QNetworkReply *API::pause(const QString& deviceId)
 {
     // https://developer.spotify.com/documentation/web-api/reference/pause-a-users-playback
     auto params = deviceId.isNull() ? QUrlQuery{} : QUrlQuery{{u"device_id"_s, deviceId}};
@@ -273,7 +273,7 @@ QNetworkReply *RestApi::pause(const QString& deviceId)
                          QByteArray{});
 }
 
-QNetworkReply *RestApi::queue(const QString &uri, const QString& device_id)
+QNetworkReply *API::queue(const QString &uri, const QString& device_id)
 {
     // https://developer.spotify.com/documentation/web-api/reference/add-to-queue
     QUrlQuery params{{{u"uri"_s, uri}}};

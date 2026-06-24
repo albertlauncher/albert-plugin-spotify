@@ -24,11 +24,11 @@ QString typeString(SearchType type);
 
 QString localizedTypeString(SearchType type);
 
-class RestApi
+class API
 {
 public:
 
-    RestApi();
+    API();
 
     [[nodiscard]] const QString &username() const;
 

@@ -11,7 +11,7 @@ class SpotifyItem;
 class SpotifySearchHandler : public albert::AsyncGeneratorQueryHandler
 {
 public:
-    SpotifySearchHandler(RestApi &api,
+    SpotifySearchHandler(API &api,
                          SearchType type,
                          const QString &name,
                          const QString &description);
@@ -27,7 +27,7 @@ public:
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) = 0;
 
 protected:
-    RestApi &api_;
+    API &api_;
     const SearchType type_;
     const QString name_;
     const QString description_;
@@ -36,7 +36,7 @@ protected:
 class TrackSearchHandler : public SpotifySearchHandler
 {
 public:
-    TrackSearchHandler(RestApi&);
+    TrackSearchHandler(API&);
     QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
     std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
@@ -45,7 +45,7 @@ public:
 class ArtistSearchHandler : public SpotifySearchHandler
 {
 public:
-    ArtistSearchHandler(RestApi&);
+    ArtistSearchHandler(API&);
     QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
     std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
@@ -54,7 +54,7 @@ public:
 class AlbumSearchHandler : public SpotifySearchHandler
 {
 public:
-    AlbumSearchHandler(RestApi&);
+    AlbumSearchHandler(API&);
     QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
     std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
@@ -63,7 +63,7 @@ public:
 class  PlaylistSearchHandler : public SpotifySearchHandler
 {
 public:
-    PlaylistSearchHandler(RestApi&);
+    PlaylistSearchHandler(API&);
     QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
     std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
@@ -72,7 +72,7 @@ public:
 class ShowSearchHandler : public SpotifySearchHandler
 {
 public:
-    ShowSearchHandler(RestApi&);
+    ShowSearchHandler(API&);
     QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
     std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
@@ -81,7 +81,7 @@ public:
 class EpisodeSearchHandler : public SpotifySearchHandler
 {
 public:
-    EpisodeSearchHandler(RestApi&);
+    EpisodeSearchHandler(API&);
     QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
     std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;
@@ -90,7 +90,7 @@ public:
 class AudiobookSearchHandler : public SpotifySearchHandler
 {
 public:
-    AudiobookSearchHandler(RestApi&);
+    AudiobookSearchHandler(API&);
     QNetworkReply *fetch(albert::QueryContext &ctx, uint page) const override;
     std::vector<std::shared_ptr<albert::Item>>
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) override;

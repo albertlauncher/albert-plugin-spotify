@@ -40,7 +40,7 @@ static auto makeErrorItem(const QString &error)
                                 [] { app().showSettings(u"spotify"_s); }}});
 }
 
-SpotifySearchHandler::SpotifySearchHandler(RestApi &api,
+SpotifySearchHandler::SpotifySearchHandler(API &api,
                                            SearchType type,
                                            const QString &name,
                                            const QString &description) :
@@ -73,7 +73,7 @@ AsyncItemGenerator SpotifySearchHandler::items(albert::QueryContext &ctx)
 
             co_await qCoro(reply.get()).waitForFinished();  // TODO: QCoro>13 QCoroNetworkReply
 
-            if (const auto exp_doc = RestApi::parseJson(reply.get()); exp_doc)
+            if (const auto exp_doc = API::parseJson(reply.get()); exp_doc)
             {
                 // TODO: GCC>13 yieling temporaries is fine
                 auto v = handleReply(ctx, *exp_doc);
@@ -94,7 +94,7 @@ AsyncItemGenerator SpotifySearchHandler::items(albert::QueryContext &ctx)
 
 //--------------------------------------------------------------------------------------------------
 
-TrackSearchHandler::TrackSearchHandler(RestApi &api) :
+TrackSearchHandler::TrackSearchHandler(API &api) :
     SpotifySearchHandler(api,
                          Track,
                          Plugin::tr("Spotify tracks"),
@@ -126,7 +126,7 @@ TrackSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &
 
 //--------------------------------------------------------------------------------------------------
 
-ArtistSearchHandler::ArtistSearchHandler(RestApi &api) :
+ArtistSearchHandler::ArtistSearchHandler(API &api) :
     SpotifySearchHandler(api,
                          Artist,
                          Plugin::tr("Spotify artists"),
@@ -157,7 +157,7 @@ ArtistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument 
 
 //--------------------------------------------------------------------------------------------------
 
-AlbumSearchHandler::AlbumSearchHandler(RestApi &api) :
+AlbumSearchHandler::AlbumSearchHandler(API &api) :
     SpotifySearchHandler(api,
                          Album,
                          Plugin::tr("Spotify albums"),
@@ -197,7 +197,7 @@ AlbumSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &
 
 //--------------------------------------------------------------------------------------------------
 
-PlaylistSearchHandler::PlaylistSearchHandler(RestApi &api) :
+PlaylistSearchHandler::PlaylistSearchHandler(API &api) :
     SpotifySearchHandler(api,
                          Playlist,
                          Plugin::tr("Spotify playlists"),
@@ -229,7 +229,7 @@ PlaylistSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocumen
 
 //--------------------------------------------------------------------------------------------------
 
-ShowSearchHandler::ShowSearchHandler(RestApi &api) :
+ShowSearchHandler::ShowSearchHandler(API &api) :
     SpotifySearchHandler(api,
                          Show,
                          Plugin::tr("Spotify shows"),
@@ -269,7 +269,7 @@ ShowSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument &d
 
 //--------------------------------------------------------------------------------------------------
 
-EpisodeSearchHandler::EpisodeSearchHandler(RestApi &api) :
+EpisodeSearchHandler::EpisodeSearchHandler(API &api) :
     SpotifySearchHandler(api,
                          Episode,
                          Plugin::tr("Spotify episodes"),
@@ -311,7 +311,7 @@ EpisodeSearchHandler::handleReply(albert::QueryContext &ctx, const QJsonDocument
 
 //--------------------------------------------------------------------------------------------------
 
-AudiobookSearchHandler::AudiobookSearchHandler(RestApi &api) :
+AudiobookSearchHandler::AudiobookSearchHandler(API &api) :
     SpotifySearchHandler(api,
                          Audiobook,
                          Plugin::tr("Spotify audiobooks"),

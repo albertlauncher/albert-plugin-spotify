@@ -26,7 +26,7 @@ private:
 
     void writeSecrets();
 
-    RestApi api;
+    API api;
 
     TrackSearchHandler track_search_handler;
     ArtistSearchHandler artist_search_hanlder;
