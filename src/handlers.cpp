@@ -40,15 +40,14 @@ static auto makeErrorItem(const QString &error)
                                 [] { app().showSettings(u"spotify"_s); }}});
 }
 
-SpotifySearchHandler::SpotifySearchHandler(const RestApi &api,
+SpotifySearchHandler::SpotifySearchHandler(RestApi &api,
                                            SearchType type,
                                            const QString &name,
                                            const QString &description) :
     api_(api),
     type_(type),
     name_(name),
-    description_(description),
-    rate_limiter_(1000)
+    description_(description)
 {}
 
 QString SpotifySearchHandler::id() const { return typeString(type_); }
@@ -65,7 +64,7 @@ AsyncItemGenerator SpotifySearchHandler::items(albert::QueryContext &ctx)
     try {
         for (auto page = 0;; ++page)
         {
-            co_await qCoro(rate_limiter_.acquire().get(), &Acquire::granted);
+            co_await api_.rate_limiter.acquire();
 
             if (!ctx.isValid())
                 co_return;

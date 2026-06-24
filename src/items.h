@@ -12,7 +12,7 @@ class SpotifyItem : public QObject, public albert::detail::DynamicItem
 {
     Q_OBJECT
 public:
-    SpotifyItem(const RestApi &api,
+    SpotifyItem(RestApi &api,
                 const QString &spotify_id,
                 const QString &title,
                 const QString &description,
@@ -34,7 +34,7 @@ protected:
     static QString tr_play_on();
     static QString tr_queue();
 
-    const RestApi &api_;
+    RestApi &api_;
     QString spotify_id_;
     QString title_;
     QString description_;
@@ -48,7 +48,7 @@ protected:
 class TrackItem : public SpotifyItem
 {
 public:
-    TrackItem(const RestApi&, const QJsonObject&);
+    TrackItem(RestApi&, const QJsonObject&);
     SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
@@ -57,7 +57,7 @@ public:
 class ArtistItem : public SpotifyItem
 {
 public:
-    ArtistItem(const RestApi&, const QJsonObject&);
+    ArtistItem(RestApi&, const QJsonObject&);
     SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
@@ -66,7 +66,7 @@ public:
 class AlbumItem : public SpotifyItem
 {
 public:
-    AlbumItem(const RestApi&, const QJsonObject&);
+    AlbumItem(RestApi&, const QJsonObject&);
     SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
@@ -75,7 +75,7 @@ public:
 class PlaylistItem : public SpotifyItem
 {
 public:
-    PlaylistItem(const RestApi&, const QJsonObject&);
+    PlaylistItem(RestApi&, const QJsonObject&);
     SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
@@ -84,7 +84,7 @@ public:
 class ShowItem : public SpotifyItem
 {
 public:
-    ShowItem(const RestApi&, const QJsonObject&);
+    ShowItem(RestApi&, const QJsonObject&);
     SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
@@ -93,7 +93,7 @@ public:
 class EpisodeItem : public SpotifyItem
 {
 public:
-    EpisodeItem(const RestApi&, const QJsonObject&);
+    EpisodeItem(RestApi&, const QJsonObject&);
     SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };
@@ -102,7 +102,7 @@ public:
 class AudiobookItem : public SpotifyItem
 {
 public:
-    AudiobookItem(const RestApi&, const QJsonObject&);
+    AudiobookItem(RestApi&, const QJsonObject&);
     SearchType type() const override final;
     std::vector<albert::Action> actions() const override;
 };

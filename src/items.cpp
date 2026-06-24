@@ -40,7 +40,7 @@ void pauseSpotify()
 }
 #endif
 
-SpotifyItem::SpotifyItem(const RestApi &api,
+SpotifyItem::SpotifyItem(RestApi &api,
                          const QString &spotify_id,
                          const QString &title,
                          const QString &description,
@@ -107,7 +107,7 @@ QString SpotifyItem::tr_queue()  { return tr("Add to queue"); }
 
 // -------------------------------------------------------------------------------------------------
 
-static void play(const RestApi &api, const QString &uri)
+static void play(RestApi &api, const QString &uri)
 {
     const auto reply = api.play({uri});
     QObject::connect(reply, &QNetworkReply::finished, reply, [reply, uri]{
@@ -123,7 +123,7 @@ static void play(const RestApi &api, const QString &uri)
     });
 }
 
-static void queue(const RestApi &api, const QString &uri)
+static void queue(RestApi &api, const QString &uri)
 {
     const auto reply = api.queue({uri});
     QObject::connect(reply, &QNetworkReply::finished, reply, [reply, uri]{
@@ -173,7 +173,7 @@ static QString makeTrackDescription(const QJsonObject &json)
     return QStringList(view.begin(), view.end()).join(u", "_s);
 }
 
-TrackItem::TrackItem(const RestApi &api, const QJsonObject &json) :
+TrackItem::TrackItem(RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
                 json["id"_L1].toString(),
                 json["name"_L1].toString(),
@@ -242,7 +242,7 @@ static QString makeArtistDescription(const QJsonObject &json)
 
 }
 
-ArtistItem::ArtistItem(const RestApi &api, const QJsonObject &json) :
+ArtistItem::ArtistItem(RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
                 json["id"_L1].toString(),
                 json["name"_L1].toString(),
@@ -269,7 +269,7 @@ static QString makeAlbumDescription(const QJsonObject &json)
     return QStringList{begin(v), end(v)}.join(u", "_s);
 }
 
-AlbumItem::AlbumItem(const RestApi &api, const QJsonObject &json) :
+AlbumItem::AlbumItem(RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
                 json["id"_L1].toString(),
                 json["name"_L1].toString(),
@@ -288,7 +288,7 @@ vector<Action> AlbumItem::actions() const
 
 // -------------------------------------------------------------------------------------------------
 
-PlaylistItem::PlaylistItem(const RestApi &api, const QJsonObject &json) :
+PlaylistItem::PlaylistItem(RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
                 json["id"_L1].toString(),
                 json["name"_L1].toString(),
@@ -307,7 +307,7 @@ vector<Action> PlaylistItem::actions() const
 
 // -------------------------------------------------------------------------------------------------
 
-ShowItem::ShowItem(const RestApi &api, const QJsonObject &json) :
+ShowItem::ShowItem(RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
                 json["id"_L1].toString(),
                 json["name"_L1].toString(),
@@ -326,7 +326,7 @@ vector<Action> ShowItem::actions() const
 
 // -------------------------------------------------------------------------------------------------
 
-EpisodeItem::EpisodeItem(const RestApi &api, const QJsonObject &json) :
+EpisodeItem::EpisodeItem(RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
                 json["id"_L1].toString(),
                 json["name"_L1].toString(),
@@ -363,7 +363,7 @@ static QString makeAudiobookDescription(const QJsonObject &json)
     return QStringList(v.begin(), v.end()).join(u", "_s);
 }
 
-AudiobookItem::AudiobookItem(const RestApi &api, const QJsonObject &json) :
+AudiobookItem::AudiobookItem(RestApi &api, const QJsonObject &json) :
     SpotifyItem(api,
                 json["id"_L1].toString(),
                 json["name"_L1].toString(),

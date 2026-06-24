@@ -97,7 +97,7 @@ void RestApi::updateAccountInformatoin()
     });
 }
 
-const QString RestApi::username() const { return username_; }
+const QString &RestApi::username() const { return username_; }
 
 bool RestApi::isPremium() const { return is_premium_; }
 
@@ -132,7 +132,7 @@ expected<QJsonDocument, QString> RestApi::parseJson(QNetworkReply *reply)
     return unexpected(u"%1: %2"_s.arg(reply->errorString(), QString::fromUtf8(data)));
 }
 
-QNetworkRequest RestApi::request(const QString &path, const QUrlQuery &query) const
+QNetworkRequest RestApi::request(const QString &path, const QUrlQuery &query)
 {
     QUrl url(u"https://api.spotify.com"_s);
     url.setPath(path);
@@ -143,12 +143,14 @@ QNetworkRequest RestApi::request(const QString &path, const QUrlQuery &query) co
     if (oauth.state() == OAuth2::State::Granted)
         request.setRawHeader("Authorization", "Bearer " + oauth.accessToken().toUtf8());
 
+    rate_limiter.limit(1000ms);
+
     return request;
 }
 
 // -------------------------------------------------------------------------------------------------
 
-QNetworkReply *RestApi::userProfile() const
+QNetworkReply *RestApi::userProfile()
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-current-users-profile
     return network().get(request(u"/v1/me"_s, {}));
@@ -162,7 +164,7 @@ QNetworkReply *RestApi::userProfile() const
 //                                   {u"offset"_s, QString::number(offset)}}));
 // }
 
-QNetworkReply *RestApi::userTopTracks(uint limit, uint offset) const
+QNetworkReply *RestApi::userTopTracks(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-top-artists-and-tracks
     return network().get(request(u"/v1/me/top/tracks"_s,
@@ -170,7 +172,7 @@ QNetworkReply *RestApi::userTopTracks(uint limit, uint offset) const
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userTopArtists(uint limit, uint offset) const
+QNetworkReply *RestApi::userTopArtists(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-top-artists-and-tracks
     return network().get(request(u"/v1/me/top/artists"_s,
@@ -178,7 +180,7 @@ QNetworkReply *RestApi::userTopArtists(uint limit, uint offset) const
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-// QNetworkReply *RestApi::userArtists(uint limit) const
+// QNetworkReply *RestApi::userArtists(uint limit)
 // {
 //     // https://developer.spotify.com/documentation/web-api/reference/get-followed
 //     return network().get(request(u"/v1/me/following"_s,
@@ -186,7 +188,7 @@ QNetworkReply *RestApi::userTopArtists(uint limit, uint offset) const
 //                                   {u"type"_s, typeString(Artist)}}));
 // }
 
-QNetworkReply *RestApi::userAlbums(uint limit, uint offset) const
+QNetworkReply *RestApi::userAlbums(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-albums
     return network().get(request(u"/v1/me/albums"_s,
@@ -194,7 +196,7 @@ QNetworkReply *RestApi::userAlbums(uint limit, uint offset) const
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userPlaylists(uint limit, uint offset) const
+QNetworkReply *RestApi::userPlaylists(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-a-list-of-current-users-playlists
     return network().get(request(u"/v1/me/playlists"_s,
@@ -202,7 +204,7 @@ QNetworkReply *RestApi::userPlaylists(uint limit, uint offset) const
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userShows(uint limit, uint offset) const
+QNetworkReply *RestApi::userShows(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-shows
     return network().get(request(u"/v1/me/shows"_s,
@@ -210,7 +212,7 @@ QNetworkReply *RestApi::userShows(uint limit, uint offset) const
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userEpisodes(uint limit, uint offset) const
+QNetworkReply *RestApi::userEpisodes(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-episodes
     return network().get(request(u"/v1/me/episodes"_s,
@@ -218,7 +220,7 @@ QNetworkReply *RestApi::userEpisodes(uint limit, uint offset) const
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::userAudiobooks(uint limit, uint offset) const
+QNetworkReply *RestApi::userAudiobooks(uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-users-saved-audiobooks
     return network().get(request(u"/v1/me/audiobooks"_s,
@@ -226,17 +228,14 @@ QNetworkReply *RestApi::userAudiobooks(uint limit, uint offset) const
                                   {u"offset"_s, QString::number(offset)}}));
 }
 
-QNetworkReply *RestApi::getDevices() const
+QNetworkReply *RestApi::getDevices()
 {
     // https://developer.spotify.com/documentation/web-api/reference/get-a-users-available-devices
     return network().get(request(u"/v1/me/player/devices"_s,
                                  {}));
 }
 
-QNetworkReply *RestApi::search(const QString &query,
-                               SearchType type,
-                               uint limit,
-                               uint offset) const
+QNetworkReply *RestApi::search(const QString &query, SearchType type, uint limit, uint offset)
 {
     // https://developer.spotify.com/documentation/web-api/reference/search
     // QStringList types;
@@ -255,7 +254,7 @@ QNetworkReply *RestApi::search(const QString &query,
                                  }));
 }
 
-QNetworkReply *RestApi::play(const QStringList &uris, const QString& deviceId) const
+QNetworkReply *RestApi::play(const QStringList &uris, const QString& deviceId)
 {
     // https://developer.spotify.com/documentation/web-api/reference/start-a-users-playback
     auto params = deviceId.isNull() ? QUrlQuery{} : QUrlQuery{{u"device_id"_s, deviceId}};
@@ -265,7 +264,7 @@ QNetworkReply *RestApi::play(const QStringList &uris, const QString& deviceId) c
                          QJsonDocument(body).toJson());
 }
 
-QNetworkReply *RestApi::pause(const QString& deviceId) const
+QNetworkReply *RestApi::pause(const QString& deviceId)
 {
     // https://developer.spotify.com/documentation/web-api/reference/pause-a-users-playback
     auto params = deviceId.isNull() ? QUrlQuery{} : QUrlQuery{{u"device_id"_s, deviceId}};
@@ -274,7 +273,7 @@ QNetworkReply *RestApi::pause(const QString& deviceId) const
                          QByteArray{});
 }
 
-QNetworkReply *RestApi::queue(const QString &uri, const QString& device_id) const
+QNetworkReply *RestApi::queue(const QString &uri, const QString& device_id)
 {
     // https://developer.spotify.com/documentation/web-api/reference/add-to-queue
     QUrlQuery params{{{u"uri"_s, uri}}};

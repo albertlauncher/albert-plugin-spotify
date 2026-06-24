@@ -4,7 +4,6 @@
 #include "api.h"
 #include <albert/asyncgeneratorqueryhandler.h>
 #include <albert/networkutil.h>
-#include <albert/ratelimiter.h>
 class Plugin;
 class QJsonArray;
 class SpotifyItem;
@@ -12,7 +11,7 @@ class SpotifyItem;
 class SpotifySearchHandler : public albert::AsyncGeneratorQueryHandler
 {
 public:
-    SpotifySearchHandler(const RestApi &api,
+    SpotifySearchHandler(RestApi &api,
                          SearchType type,
                          const QString &name,
                          const QString &description);
@@ -28,11 +27,10 @@ public:
     handleReply(albert::QueryContext &ctx, const QJsonDocument &doc) = 0;
 
 protected:
-    const RestApi &api_;
+    RestApi &api_;
     const SearchType type_;
     const QString name_;
     const QString description_;
-    albert::detail::RateLimiter rate_limiter_;
 };
 
 class TrackSearchHandler : public SpotifySearchHandler
