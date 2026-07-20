@@ -37,7 +37,7 @@ static auto makeErrorItem(const QString &error)
                               error,
                               ::move(ico_fac),
                               {{u"settings"_s, Plugin::tr("Open settings"),
-                                [] { App::instance().showSettings(u"spotify"_s); }}});
+                                [] { app().showSettings(u"spotify"_s); }}});
 }
 
 SpotifySearchHandler::SpotifySearchHandler(const RestApi &api,

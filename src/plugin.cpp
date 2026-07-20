@@ -136,5 +136,5 @@ vector<Extension*> Plugin::extensions() {
 void Plugin::handle(const QUrl &url)
 {
     api.oauth.handleCallback(url);
-    App::instance().showSettings(id());
+    app().showSettings(id());
 }

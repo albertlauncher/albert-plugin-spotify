@@ -65,7 +65,7 @@ std::unique_ptr<Icon> SpotifyItem::icon() const
 {
     if (!icon_)  // lazy, first request
     {
-        const auto icons_location = App::cacheLocation() / "spotify" / "icons";
+        const auto icons_location = app().cacheLocation() / "spotify" / "icons";
 
         if (const auto icon_path = QDir(icons_location).filePath(id() + u".jpeg"_s);
             QFile::exists(icon_path))
