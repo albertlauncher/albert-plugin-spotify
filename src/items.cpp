@@ -17,7 +17,7 @@ using namespace Qt::StringLiterals;
 using namespace albert;
 using namespace std;
 
-#if defined Q_OS_MAC
+#if defined Q_OS_MACOS
 static void pauseSpotify()
 {
 
